@@ -11,7 +11,7 @@
 
     <!-- launch the ICRA gazebo world -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-        <arg name="world_name" value="$(find roborts_gazebo)/worlds/ICRA_3D_MAP.world"/>
+        <arg name="world_name" value="$(find roborts_gazebo)/worlds/ICRA2019_3D_MAP.world"/>
         <arg name="debug" value="$(arg debug)" />
         <arg name="gui" value="$(arg gui)" />
         <arg name="paused" value="$(arg paused)"/>
@@ -31,7 +31,7 @@
     </include>
 
     <!-- Run the slam -->
-    <include file="$(env ROBORTS_PATH)/tools/simulator/slam_gmapping.xml"/>
+    <include file="$(find roborts)/tools/launch/slam_gmapping.xml"/>
 
     <!-- Run the Gazebo Simulator -->
     <node name="uwb_tf_static_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 1 map uwb 100" />
