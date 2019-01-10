@@ -140,10 +140,10 @@ void ConstraintSet::DetectLights(const cv::Mat &src, std::vector<cv::RotatedRect
   cv::dilate(src, src, element, cv::Point(-1, -1), 1);
   cv::Mat binary_brightness_img, binary_light_img, binary_color_img;
   if(using_hsv_) {
-    binary_color_img = cv_toolbox_.DistillationColor(src, enemy_color_, using_hsv_);
+    binary_color_img = cv_toolbox_.DistillationColor(src, enemy_color_, using_hsv_, enable_debug_);
     cv::threshold(gray_img_, binary_brightness_img, color_thread_, 255, CV_THRESH_BINARY);
   }else {
-    auto light = cv_toolbox_.DistillationColor(src, enemy_color_, using_hsv_);
+    auto light = cv_toolbox_.DistillationColor(src, enemy_color_, using_hsv_, enable_debug_);
     cv::threshold(gray_img_, binary_brightness_img, color_thread_, 255, CV_THRESH_BINARY);
     float thresh;
     if (enemy_color_ == BLUE)

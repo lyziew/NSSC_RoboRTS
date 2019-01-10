@@ -28,22 +28,26 @@
 #include "modules/driver/camera/camera_param.h"
 #include "common/log.h"
 
-namespace rrts {
-namespace perception {
-namespace detection {
+namespace rrts
+{
+namespace perception
+{
+namespace detection
+{
 
 /**
  * This class is a toolbox for RoboMaster detection.
  */
-class CVToolbox {
- public:
+class CVToolbox
+{
+public:
   /**
    *  @brief The constructor of the CVToolbox.
    */
   CVToolbox(unsigned int buffer_size = 2,
-            unsigned int camera_index = 0) :
-      buffer_size_(buffer_size),
-      camera_index_(camera_index) {
+            unsigned int camera_index = 0) : buffer_size_(buffer_size),
+                                             camera_index_(camera_index)
+  {
 
     ros::NodeHandle nh;
     image_transport::ImageTransport it(nh);
@@ -52,19 +56,22 @@ class CVToolbox {
     image_buffer_.resize(camera_num);
     write_index_.resize(buffer_size);
     read_index_.resize(buffer_size);
-    for (unsigned long i = 0; i < camera_num; i++) {
+    for (unsigned long i = 0; i < camera_num; i++)
+    {
       image_buffer_[i].resize(buffer_size);
       write_index_[i] = 0;
       read_index_[i] = 1;
     }
 
-    for (unsigned int i = 0; i < subs_.size(); i++) {
+    for (unsigned int i = 0; i < subs_.size(); i++)
+    {
       std::string topic_name = "camera_" + std::to_string(i);
       subs_[i] = it.subscribe(topic_name, 20, boost::bind(&CVToolbox::ReceiveImg, this, _1, i));
     }
   }
 
-  void ReceiveImg(const sensor_msgs::ImageConstPtr &msg, unsigned int camera_id) {
+  void ReceiveImg(const sensor_msgs::ImageConstPtr &msg, unsigned int camera_id)
+  {
     image_buffer_[camera_id][write_index_[camera_id]] = cv_bridge::toCvShare(msg, "bgr8")->image.clone();
     lock_.lock();
     unsigned int tmp_index_ = write_index_[camera_id];
@@ -76,7 +83,8 @@ class CVToolbox {
    * @brief Get next new image.
    * @param src_img Output image
    */
-  void NextImage(cv::Mat &src_img, int camera_id) {
+  void NextImage(cv::Mat &src_img, int camera_id)
+  {
     lock_.lock();
     image_buffer_.at(camera_id).at(read_index_.at(camera_id)).copyTo(src_img);
     lock_.unlock();
@@ -84,25 +92,31 @@ class CVToolbox {
   /**
    *  @brief Stop to read image.
    */
-  void StopReadCamera() {
+  void StopReadCamera()
+  {
   }
   /**
    * @brief Highlight the blue or red region of the image.
    * @param image Input image ref
    * @return Single channel image
    */
-  cv::Mat DistillationColor(const cv::Mat &src_img, unsigned int color, bool using_hsv) {
-    if(using_hsv) {
+  cv::Mat DistillationColor(const cv::Mat &src_img, unsigned int color, bool using_hsv, bool enable_debug_)
+  {
+    if (using_hsv)
+    {
       cv::Mat img_hsv;
       cv::cvtColor(src_img, img_hsv, CV_BGR2HSV);
-      if (color == BLUE) {
+      if (color == BLUE)
+      {
         cv::Mat img_hsv_blue, img_threshold_blue;
         img_hsv_blue = img_hsv.clone();
         cv::Mat blue_low(cv::Scalar(90, 150, 46));
         cv::Mat blue_higher(cv::Scalar(140, 255, 255));
         cv::inRange(img_hsv_blue, blue_low, blue_higher, img_threshold_blue);
         return img_threshold_blue;
-      } else {
+      }
+      else
+      {
         cv::Mat img_hsv_red1, img_hsv_red2, img_threshold_red, img_threshold_red1, img_threshold_red2;
         img_hsv_red1 = img_hsv.clone();
         img_hsv_red2 = img_hsv.clone();
@@ -117,14 +131,20 @@ class CVToolbox {
         //cv::imshow("img_threshold_red", img_threshold_red);
         return img_threshold_red;
       }
-    } else {
+    }
+    else
+    {
       std::vector<cv::Mat> bgr;
       cv::split(src_img, bgr);
-      if (color == RED) {
+      //这里判断颜色有问题,需要根据实际相机调整
+      if (color == RED)
+      {
         cv::Mat result_img;
         cv::subtract(bgr[2], bgr[1], result_img);
         return result_img;
-      } else if (color == BLUE) {
+      }
+      else if (color == BLUE)
+      {
         cv::Mat result_img;
         cv::subtract(bgr[0], bgr[2], result_img);
         return result_img;
@@ -136,7 +156,8 @@ class CVToolbox {
    * @param binary binary image ref
    * @return Contours that found.
    */
-  std::vector<std::vector<cv::Point>> FindContours(const cv::Mat &binary_img) {
+  std::vector<std::vector<cv::Point>> FindContours(const cv::Mat &binary_img)
+  {
     std::vector<std::vector<cv::Point>> contours;
     const auto mode = CV_RETR_EXTERNAL;
     const auto method = CV_CHAIN_APPROX_SIMPLE;
@@ -150,14 +171,16 @@ class CVToolbox {
    * @param color Rectangle color
    * @param thickness Thickness of the line
    */
-  void DrawRotatedRect(const cv::Mat &img, const cv::RotatedRect &rect, const cv::Scalar &color, int thickness) {
+  void DrawRotatedRect(const cv::Mat &img, const cv::RotatedRect &rect, const cv::Scalar &color, int thickness)
+  {
     cv::Point2f vertex[4];
 
     rect.points(vertex);
     for (int i = 0; i < 4; i++)
       cv::line(img, vertex[i], vertex[(i + 1) % 4], color, thickness);
   }
- private:
+
+private:
   unsigned int buffer_size_;
 
   std::vector<std::vector<cv::Mat>> image_buffer_;

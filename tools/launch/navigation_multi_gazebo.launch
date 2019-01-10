@@ -19,18 +19,6 @@
         <arg name="headless" value="$(arg headless)"/>
     </include>
 
-    <arg name="model" value="$(find roborts_gazebo)/robots/infantry.xacro" />
-    <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg model)" />
-
-    <include file="$(find roborts_gazebo)/launch/spawn_robot.launch">
-        <arg name="pos_x" value="1"/>
-        <arg name="pos_y" value="1"/>
-        <arg name="pos_z" value="0.08"/>
-        <arg name="pos_R" value="0"/>
-        <arg name="name" value="infantry"/>
-    </include>
-
-
     <!-- Run the map server -->
     <node name="map_server" pkg="map_server" type="map_server" args="$(find roborts)/tools/maps/$(arg map).yaml" respawn="false" />
 
@@ -38,19 +26,114 @@
     <node name="uwb_tf_static_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 1 map uwb 100" />
 
     <!-- Run the rviz -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find roborts)/tools/rviz/rm.rviz" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find roborts)/tools/rviz/rm_mulit.rviz" />
 
     <!-- Run the SelfCheck Node -->
     <!-- node pkg="roborts" type="self_check_node" name="self_check_node" respawn="false" / -->
+    <group ns="robot_0">
+        <param name="tf_prefix" value="robot_0" />
+        <include file="$(find roborts_gazebo)/launch/spawn_robot.launch">
+            <arg name="robot_model" value="$(find roborts_gazebo)/robots/infantry_red.xacro" />
+            <arg name="pos_x" value="0.8"/>
+            <arg name="pos_y" value="0.8"/>
+            <arg name="pos_z" value="0.08"/>
+            <arg name="pos_R" value="0"/>
+            <arg name="name" value="robot_0"/>
+        </include>
 
-    <!-- Run the Localization Node -->
-    <node pkg="roborts" type="localization_node" name="localization_red1_node" respawn="false" />
+        <!-- Run the Localization Node -->
+        <node pkg="roborts" type="localization_node" name="localization_node" respawn="false">
+            <param name="initial_pose_x" type="double" value="1.0" />
+            <param name="initial_pose_y" type="double" value="1.0" />
+        </node>
 
-    <!-- Run the Global Planner Node -->
-    <node pkg="roborts" type="global_planner_node" name="global_planner_red1_node" respawn="false" />
+        <!-- Run the Global Planner Node -->
+        <node pkg="roborts" type="global_planner_node" name="global_planner_node" respawn="false" />
 
-    <!-- Run the Local Planner Node -->
-    <node pkg="roborts" type="local_planner_node" name="local_planner_red1_node" respawn="false" />
+        <!-- Run the Local Planner Node -->
+        <node pkg="roborts" type="local_planner_node" name="local_planner_node" respawn="false"/>
 
+        <!-- Run the Decision Node -->
+        <!-- <node pkg="roborts" type="test_decision_node" name="test_decision_node" respawn="false" /> -->
+        <node pkg="roborts" type="sim_decision_node" name="sim_decision_node" respawn="false" />
+    </group>
+
+    <group ns="robot_1">
+        <param name="tf_prefix" value="robot_1" />
+        <include file="$(find roborts_gazebo)/launch/spawn_robot.launch">
+            <arg name="robot_model" value="$(find roborts_gazebo)/robots/infantry_red.xacro" />
+            <arg name="pos_x" value="7.2"/>
+            <arg name="pos_y" value="0.8"/>
+            <arg name="pos_z" value="0.08"/>
+            <arg name="pos_R" value="0"/>
+            <arg name="name" value="robot_1"/>
+        </include>
+
+        <!-- Run the Localization Node -->
+        <node pkg="roborts" type="localization_node" name="localization_node" respawn="false">
+            <param name="initial_pose_x" type="double" value="7.0" />
+            <param name="initial_pose_y" type="double" value="1.0" />
+        </node>
+        <!-- Run the Global Planner Node -->
+        <node pkg="roborts" type="global_planner_node" name="global_planner_node" respawn="false" />
+
+        <!-- Run the Local Planner Node -->
+        <node pkg="roborts" type="local_planner_node" name="local_planner_node" respawn="false"/>
+
+        <!-- Run the Decision Node -->
+        <!-- <node pkg="roborts" type="test_decision_node" name="test_decision_node" respawn="false" /> -->
+        <node pkg="roborts" type="sim_decision_node" name="sim_decision_node" respawn="false" />
+    </group>
+
+    <group ns="blue1">
+
+        <!-- <include file="$(find roborts_gazebo)/launch/spawn_robot.launch">
+        <arg name="robot_model" value="$(find roborts_gazebo)/robots/infantry_blue.xacro" />
+        <arg name="pos_x" value="1"/>
+        <arg name="pos_y" value="4"/>
+        <arg name="pos_z" value="0.08"/>
+        <arg name="pos_R" value="0"/>
+        <arg name="name" value="infantry_blue1"/>
+    </include> -->
+
+        <!-- Run the Localization Node -->
+        <!-- <node pkg="roborts" type="localization_node" name="localization_node" respawn="false" /> -->
+
+        <!-- Run the Global Planner Node -->
+        <!-- <node pkg="roborts" type="global_planner_node" name="global_planner_node" respawn="false" /> -->
+
+        <!-- Run the Local Planner Node -->
+        <!-- <node pkg="roborts" type="local_planner_node" name="local_planner_node" respawn="false" /> -->
+
+        <!-- Run the Decision Node -->
+        <!-- <node pkg="roborts" type="test_decision_node" name="test_decision_node" respawn="false" /> -->
+        <!-- <node pkg="roborts" type="sim_decision_node" name="sim_decision_node" respawn="false" /> -->
+    </group>
+
+    <group ns="blue2">
+
+        <!-- <include file="$(find roborts_gazebo)/launch/spawn_robot.launch">
+        <arg name="robot_model" value="$(find roborts_gazebo)/robots/infantry_blue.xacro" />
+        <arg name="pos_x" value="7"/>
+        <arg name="pos_y" value="4"/>
+        <arg name="pos_z" value="0.08"/>
+        <arg name="pos_R" value="0"/>
+        <arg name="name" value="infantry_blue2"/>
+    </include> -->
+
+        <!-- Run the Localization Node -->
+        <!-- <node pkg="roborts" type="localization_node" name="localization_node" respawn="false" /> -->
+
+        <!-- Run the Global Planner Node -->
+        <!-- <node pkg="roborts" type="global_planner_node" name="global_planner_node" respawn="false" /> -->
+
+        <!-- Run the Local Planner Node -->
+        <!-- <node pkg="roborts" type="local_planner_node" name="local_planner_node" respawn="false" /> -->
+
+        <!-- Run the Decision Node -->
+        <!-- <node pkg="roborts" type="test_decision_node" name="test_decision_node" respawn="false" /> -->
+
+        <!-- <node pkg="roborts" type="sim_decision_node" name="sim_decision_node" respawn="false" /> -->
+    </group>
 
 </launch>

@@ -189,7 +189,7 @@ ErrorInfo AStarPlanner::SearchPath(const int &start_index,
   }
 
   if (current_index != goal_index) {
-    LOG_WARNING << "Global planner can't search the valid path!";
+    LOG_WARNING <<"Global planner can't search the valid path!";
     return ErrorInfo(ErrorCode::GP_PATH_SEARCH_ERROR, "Valid global path not found.");
   }
 

@@ -15,6 +15,18 @@ target_link_libraries(ICRA_decision_node
   ${catkin_LIBRARIES}
   )
 
+add_executable(sim_decision_node
+  ICRA_decision/sim_decision_node.cpp
+  )
+
+target_link_libraries(sim_decision_node
+  PRIVATE
+  common::log
+  behavior_tree
+  perception::map::costmap
+  ${catkin_LIBRARIES}
+  )
+
 
 add_executable(test_decision_node
   decision_test.cpp

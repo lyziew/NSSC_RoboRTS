@@ -56,6 +56,7 @@
 #include <Eigen/StdVector>
 #include <thread>
 
+#include <tf/message_filter.h>
 #include <geometry_msgs/PolygonStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include "modules/perception/map/costmap/map_common.h"

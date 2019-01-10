@@ -17,23 +17,27 @@
 
 #include "modules/perception/localization/localization_node.h"
 
-namespace rrts {
-namespace perception {
-namespace localization {
+namespace rrts
+{
+namespace perception
+{
+namespace localization
+{
 
-LocalizationNode::LocalizationNode(std::string name) :
-    rrts::common::RRTS::RRTS(name,4) {
+LocalizationNode::LocalizationNode(std::string name) : rrts::common::RRTS::RRTS(name, 4)
+{
 
   CHECK(Init()) << "Module localization_node initalized failed!";
   initialized_ = true;
-
 }
 
-bool LocalizationNode::Init() {
+bool LocalizationNode::Init()
+{
 
   std::string prototxt_file_name = "/modules/perception/localization/config/localization.prototxt";
-  bool read_state = rrts::common::ReadProtoFromTextFile(prototxt_file_name,&localization_config_);
-  if(!read_state){
+  bool read_state = rrts::common::ReadProtoFromTextFile(prototxt_file_name, &localization_config_);
+  if (!read_state)
+  {
     LOG_ERROR << "Cannot open " << prototxt_file_name;
     return false;
   }
@@ -45,9 +49,38 @@ bool LocalizationNode::Init() {
   global_frame_ = localization_config_.global_frame_id();
   base_frame_ = localization_config_.base_frame_id();
 
-  init_pose_ << localization_config_.initial_pose_x(),
-      localization_config_.initial_pose_y(),
-      localization_config_.initial_pose_a();
+  const std::string tf_prefix = tf::getPrefixParam(nh_);
+
+  if (!global_frame_.empty())
+  {
+    if (global_frame_ != "map")
+    {
+      global_frame_ = tf::resolve(tf_prefix, global_frame_);
+    }
+  }
+  LOG_INFO << "global_frame_: " << global_frame_;
+  if (!odom_frame_.empty())
+  {
+    odom_frame_ = tf::resolve(tf_prefix, odom_frame_);
+  }
+  LOG_INFO << "odom_frame_: " << odom_frame_;
+  if (!base_frame_.empty())
+  {
+    base_frame_ = tf::resolve(tf_prefix, base_frame_);
+  }
+  LOG_INFO << "base_frame_: " << base_frame_;
+  double initial_pose_x;
+  double initial_pose_y;
+  double initial_pose_a;
+  ros::NodeHandle private_nh("~");
+  private_nh.param<double>("initial_pose_x", initial_pose_x, 1.0);
+  private_nh.param<double>("initial_pose_y", initial_pose_y, 1.0);
+  private_nh.param<double>("initial_pose_a", initial_pose_a, 0.0);
+  LOG_INFO << "initial_pose: " << initial_pose_x << " ," << initial_pose_y;
+  init_pose_ << initial_pose_x , initial_pose_y ,initial_pose_a;
+  // init_pose_ << localization_config_.initial_pose_x(),
+  //     localization_config_.initial_pose_y(),
+  //     localization_config_.initial_pose_a();
 
   init_cov_ << localization_config_.initial_cov_xx(),
       localization_config_.initial_cov_yy(),
@@ -55,12 +88,11 @@ bool LocalizationNode::Init() {
 
   particlecloud_pub_ = nh_.advertise<geometry_msgs::PoseArray>("particlecloud", 2, true);
 
-  map_sub_ = nh_.subscribe("map", 1, &LocalizationNode::MapCallback, this);
+  map_sub_ = nh_.subscribe("/map", 1, &LocalizationNode::MapCallback, this);
 
-  laser_scan_sub_ = new message_filters::Subscriber<sensor_msgs::LaserScan>
-      (nh_,
-       localization_config_.laser_topic_name(),
-       100);
+  laser_scan_sub_ = new message_filters::Subscriber<sensor_msgs::LaserScan>(nh_,
+                                                                            localization_config_.laser_topic_name(),
+                                                                            100);
   laser_scan_filter_ = new tf::MessageFilter<sensor_msgs::LaserScan>(*laser_scan_sub_,
                                                                      *tf_listener_ptr_,
                                                                      odom_frame_,
@@ -74,21 +106,25 @@ bool LocalizationNode::Init() {
 
   clean_laser_scan_pub_ = nh_.advertise<sensor_msgs::LaserScan>("clean_laser_scan", 100, true);
 
-  amcl_ptr_= std::make_unique<Amcl>();
+  amcl_ptr_ = std::make_unique<Amcl>();
   amcl_ptr_->Init(init_pose_, init_cov_);
 
   enable_uwb_ = localization_config_.enable_uwb();
-  if(enable_uwb_) {
+  if (enable_uwb_)
+  {
     LOG_INFO << "Enable uwb correction!";
     uwb_frame_ = localization_config_.uwb_frame_id();
     uwb_topic_name_ = localization_config_.uwb_topic_name();
-    if(localization_config_.uwb_correction_frequency() > 0) {
+    if (localization_config_.uwb_correction_frequency() > 0)
+    {
       uwb_thread_delay_ = static_cast<int>(1 / localization_config_.uwb_correction_frequency() * 1000);
-    } else
+    }
+    else
     {
       uwb_thread_delay_ = 50.0;
     }
-    if(localization_config_.use_sim_uwb()) {
+    if (localization_config_.use_sim_uwb())
+    {
       ground_truth_sub_ = nh_.subscribe("base_pose_ground_truth", 100, &LocalizationNode::GroudTruthCallback, this);
       fake_uwb_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("uwb", 100, true);
     }
@@ -101,19 +137,20 @@ bool LocalizationNode::Init() {
   LOG_INFO << "Localization Init!";
 
   return true;
-
 }
 
-
-LocalizationNode::~LocalizationNode() {
+LocalizationNode::~LocalizationNode()
+{
   uwb_amcl_thread_.join();
   delete laser_scan_filter_;
   delete laser_scan_sub_;
 }
 
-void LocalizationNode::MapCallback(const nav_msgs::OccupancyGrid::ConstPtr &map_msg) {
+void LocalizationNode::MapCallback(const nav_msgs::OccupancyGrid::ConstPtr &map_msg)
+{
 
-  if (first_map_only_ && first_map_received_) {
+  if (first_map_only_ && first_map_received_)
+  {
     return;
   }
 
@@ -121,28 +158,33 @@ void LocalizationNode::MapCallback(const nav_msgs::OccupancyGrid::ConstPtr &map_
 
   amcl_ptr_->HandleMapMessage(*map_msg, init_pose_, init_cov_);
   first_map_received_ = true;
-
 }
 
-void LocalizationNode::UwbCallback(const geometry_msgs::PoseStamped::ConstPtr &uwb_msg) {
+void LocalizationNode::UwbCallback(const geometry_msgs::PoseStamped::ConstPtr &uwb_msg)
+{
 
-  if(!first_map_received_ || !amcl_ptr_->CheckTfUpdate()){
+  if (!first_map_received_ || !amcl_ptr_->CheckTfUpdate())
+  {
     return;
   }
 
   ros::Time current_time = ros::Time::now();
-  tf::Stamped<tf::Pose> uwb_pose_in_uwb,uwb_pose_in_map;
-  tf::poseStampedMsgToTF(*uwb_msg,uwb_pose_in_uwb);
+  tf::Stamped<tf::Pose> uwb_pose_in_uwb, uwb_pose_in_map;
+  tf::poseStampedMsgToTF(*uwb_msg, uwb_pose_in_uwb);
   uwb_pose_in_uwb.stamp_ = ros::Time(0);
   bool error = false;
-  try {
-    tf_listener_ptr_->transformPose("map",uwb_pose_in_uwb,uwb_pose_in_map);
-  } catch (tf::TransformException e) {
+  try
+  {
+    tf_listener_ptr_->transformPose("map", uwb_pose_in_uwb, uwb_pose_in_map);
+  }
+  catch (tf::TransformException e)
+  {
     error = true;
     update_uwb_ = false;
     LOG_ERROR << "Uwb Callback TF error: " << e.what();
   }
-  if(uwb_init_) {
+  if (uwb_init_)
+  {
 
     math::Vec3d uwb_pose_now;
     uwb_pose_now << uwb_pose_in_map.getOrigin().x(),
@@ -150,18 +192,20 @@ void LocalizationNode::UwbCallback(const geometry_msgs::PoseStamped::ConstPtr &u
         0;
 
     auto dt = (current_time - uwb_latest_time);
-    if(dt.toSec() > 0) {
+    if (dt.toSec() > 0)
+    {
       uwb_latest_time = current_time;
       uwb_odom_vel_(0) = (uwb_pose_now(0) - uwb_latest_pose_(0)) / dt.toSec();
       uwb_odom_vel_(1) = (uwb_pose_now(1) - uwb_latest_pose_(1)) / dt.toSec();
 
       uwb_latest_pose_ = uwb_pose_now;
       update_uwb_ = true;
-
     }
-  } else if(!error){
+  }
+  else if (!error)
+  {
     LOG_INFO << "UWB Callback Init";
-    uwb_latest_pose_  << uwb_pose_in_map.getOrigin().x(),
+    uwb_latest_pose_ << uwb_pose_in_map.getOrigin().x(),
         uwb_pose_in_map.getOrigin().y(),
         0;
     uwb_latest_time = current_time;
@@ -169,25 +213,30 @@ void LocalizationNode::UwbCallback(const geometry_msgs::PoseStamped::ConstPtr &u
   }
 }
 
-void LocalizationNode::UwbAmclThread(){
-  while (ros::ok()) {
-    while (!first_map_received_ && !uwb_init_ || !amcl_ptr_->CheckTfUpdate()) {
-      if(!ros::ok()){
+void LocalizationNode::UwbAmclThread()
+{
+  while (ros::ok())
+  {
+    while (!first_map_received_ && !uwb_init_ || !amcl_ptr_->CheckTfUpdate())
+    {
+      if (!ros::ok())
+      {
         DLOG_INFO << "Uwb Amcl Thread End";
         return;
       }
       usleep(1);
     }
-    if(update_uwb_) {
-      amcl_ptr_->UpdateUwb(uwb_latest_pose_ );
+    if (update_uwb_)
+    {
+      amcl_ptr_->UpdateUwb(uwb_latest_pose_);
       update_uwb_ = false;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(uwb_thread_delay_));
   }
-
 }
 
-void LocalizationNode::GroudTruthCallback(const nav_msgs::Odometry::ConstPtr &msg){
+void LocalizationNode::GroudTruthCallback(const nav_msgs::Odometry::ConstPtr &msg)
+{
   geometry_msgs::PoseStamped fake_uwb_pose;
   fake_uwb_pose.header.stamp = ros::Time::now();
   fake_uwb_pose.header.frame_id = "uwb";
@@ -197,7 +246,8 @@ void LocalizationNode::GroudTruthCallback(const nav_msgs::Odometry::ConstPtr &ms
   fake_uwb_pose_pub_.publish(fake_uwb_pose);
 }
 
-void LocalizationNode::InitialPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg) {
+void LocalizationNode::InitialPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg)
+{
 
   tf::Pose pose_new;
   TransformInitialPose(pose_new, msg);
@@ -214,20 +264,23 @@ void LocalizationNode::InitialPoseCallback(const geometry_msgs::PoseWithCovarian
   init_pose_mean(1) = pose_new.getOrigin().y();
   init_pose_mean(2) = GetYawFromTfPose(pose_new);
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
+  for (int i = 0; i < 2; i++)
+  {
+    for (int j = 0; j < 2; j++)
+    {
       init_pose_cov(i, j) = msg->pose.covariance[6 * i + j];
     }
   }
   init_pose_cov(2, 2) = msg->pose.covariance[6 * 5 + 5];
 
   amcl_ptr_->HandleInitialPoseMessage(init_pose_mean, init_pose_cov);
-
 }
 
-void LocalizationNode::LaserScanCallback(const sensor_msgs::LaserScan::ConstPtr &laser_scan_ptr) {
+void LocalizationNode::LaserScanCallback(const sensor_msgs::LaserScan::ConstPtr &laser_scan_ptr)
+{
 
-  if (!first_map_received_) {
+  if (!first_map_received_)
+  {
     return;
   }
 
@@ -235,7 +288,8 @@ void LocalizationNode::LaserScanCallback(const sensor_msgs::LaserScan::ConstPtr 
   laser_msg_time_stamp_ = laser_scan_msg.header.stamp;
 
   //Check laser init
-  if (!laser_init_) {
+  if (!laser_init_)
+  {
     math::Vec3d laser_pose_v;
     TransformLaserpose(laser_scan_msg, laser_pose_v);
     amcl_ptr_->SetLaserSensorPose(laser_pose_v);
@@ -247,7 +301,8 @@ void LocalizationNode::LaserScanCallback(const sensor_msgs::LaserScan::ConstPtr 
   pose.setZero();
   if (!GetOdomPose(latest_odom_pose_, pose,
                    laser_msg_time_stamp_,
-                   base_frame_)) {
+                   base_frame_))
+  {
     LOG_ERROR << "Couldn't determine robot's pose associated with laser scan";
     return;
   }
@@ -268,41 +323,48 @@ void LocalizationNode::LaserScanCallback(const sensor_msgs::LaserScan::ConstPtr 
   sensor_msgs::LaserScan clean_laser_scan_msg = amcl_ptr_->GetCleanLaserScan();
   clean_laser_scan_pub_.publish(clean_laser_scan_msg);
 
-  if (amcl_ptr_->CheckTfUpdate()) {
+  if (amcl_ptr_->CheckTfUpdate())
+  {
     PublishUpdatedTF();
-  } else if (latest_tf_valid_) {
+  }
+  else if (latest_tf_valid_)
+  {
     PublishLatestValidTF();
   }
 
-  if (amcl_ptr_->CheckParticlePoseCloudPublish()) {
+  if (amcl_ptr_->CheckParticlePoseCloudPublish())
+  {
     particle_cloud_poses_.header.stamp = ros::Time::now();
     particle_cloud_poses_.header.frame_id = global_frame_;
     particlecloud_pub_.publish(particle_cloud_poses_);
   }
 
-  if (amcl_ptr_->CheckPosePublish()) {
+  if (amcl_ptr_->CheckPosePublish())
+  {
     geometry_msgs::PoseWithCovarianceStamped pose_msg;
     TransfromHypPoseToMsg(hyp_pose_, pose_msg);
     pose_pub_.publish(pose_msg);
   }
-
 }
 
 bool LocalizationNode::GetOdomPose(tf::Stamped<tf::Pose> &odom_pose,
                                    math::Vec3d &pose,
                                    const ros::Time &timestamp,
-                                   const std::string &frame_id) {
+                                   const std::string &frame_id)
+{
   // Get the robot's pose
   tf::Stamped<tf::Pose> ident(tf::Transform(tf::createIdentityQuaternion(),
                                             tf::Vector3(0, 0, 0)),
                               timestamp,
                               frame_id);
-  try {
+  try
+  {
     this->tf_listener_ptr_->transformPose(odom_frame_,
                                           ident,
                                           odom_pose);
   }
-  catch (tf::TransformException e) {
+  catch (tf::TransformException e)
+  {
     LOG_WARNING << "Failed to compute odom pose, skipping scan (" << e.what() << ")";
     return false;
   }
@@ -314,13 +376,16 @@ bool LocalizationNode::GetOdomPose(tf::Stamped<tf::Pose> &odom_pose,
 }
 
 void LocalizationNode::TransformInitialPose(tf::Pose &pose_new,
-                                            const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg) {
-  if (msg->header.frame_id == "") {
+                                            const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg)
+{
+  if (msg->header.frame_id == "")
+  {
     LOG_WARNING << "Received initial pose with empty frame_id.";
   }
-    // Only accept initial pose estimates in the global frame
+  // Only accept initial pose estimates in the global frame
   else if (tf_listener_ptr_->resolve(msg->header.frame_id) !=
-      tf_listener_ptr_->resolve(global_frame_)) {
+           tf_listener_ptr_->resolve(global_frame_))
+  {
     LOG_WARNING << "Ignoring initial pose in frame \" "
                 << msg->header.frame_id
                 << "\"; initial poses must be in the global frame, \""
@@ -331,7 +396,8 @@ void LocalizationNode::TransformInitialPose(tf::Pose &pose_new,
   // In case the client sent a pose estimate in the past, integrate the
   // intervening odometric change.
   tf::StampedTransform tx_odom;
-  try {
+  try
+  {
     ros::Time now = ros::Time::now();
     tf_listener_ptr_->waitForTransform(base_frame_,
                                        msg->header.stamp,
@@ -341,8 +407,10 @@ void LocalizationNode::TransformInitialPose(tf::Pose &pose_new,
                                       base_frame_, now,
                                       odom_frame_, tx_odom);
   }
-  catch (tf::TransformException e) {
-    if (sent_first_transform_) {
+  catch (tf::TransformException e)
+  {
+    if (sent_first_transform_)
+    {
       LOG_WARNING << "Failed to transform initial pose in time " << e.what();
     }
     tx_odom.setIdentity();
@@ -351,22 +419,25 @@ void LocalizationNode::TransformInitialPose(tf::Pose &pose_new,
   tf::Pose pose_old;
   tf::poseMsgToTF(msg->pose.pose, pose_old);
   pose_new = pose_old * tx_odom;
-
 }
 
 bool LocalizationNode::TransformLaserpose(const sensor_msgs::LaserScan &laser_scan_msg,
-                                          math::Vec3d &laser_pose) {
+                                          math::Vec3d &laser_pose)
+{
 
   tf::Stamped<tf::Pose> ident(tf::Transform(tf::createIdentityQuaternion(),
                                             tf::Vector3(0, 0, 0)),
                               ros::Time(),
                               laser_scan_msg.header.frame_id);
   tf::Stamped<tf::Pose> laser_pose_stamp;
-  try {
+  try
+  {
     this->tf_listener_ptr_->transformPose(base_frame_,
                                           ident,
                                           laser_pose_stamp);
-  } catch (tf::TransformException e) {
+  }
+  catch (tf::TransformException e)
+  {
     LOG_ERROR << "Couldn't transform from "
               << laser_scan_msg.header.frame_id
               << "to "
@@ -377,18 +448,14 @@ bool LocalizationNode::TransformLaserpose(const sensor_msgs::LaserScan &laser_sc
   laser_pose.setZero();
   laser_pose[0] = laser_pose_stamp.getOrigin().x();
   laser_pose[1] = laser_pose_stamp.getOrigin().y();
-  DLOG_INFO << "Received laser's pose wrt robot: "<<
-      laser_pose[0] << ", " <<
-      laser_pose[1] << ", " <<
-      laser_pose[2];
+  DLOG_INFO << "Received laser's pose wrt robot: " << laser_pose[0] << ", " << laser_pose[1] << ", " << laser_pose[2];
   return true;
-
 }
-
 
 void LocalizationNode::TransformLaserscanToBaseFrame(double &angle_min,
                                                      double &angle_increment,
-                                                     const sensor_msgs::LaserScan &laser_scan_msg) {
+                                                     const sensor_msgs::LaserScan &laser_scan_msg)
+{
 
   // To account for lasers that are mounted upside-down, we determine the
   // min, max, and increment angles of the laser in the base frame.
@@ -397,12 +464,12 @@ void LocalizationNode::TransformLaserscanToBaseFrame(double &angle_min,
   q.setRPY(0.0, 0.0, laser_scan_msg.angle_min);
   tf::Stamped<tf::Quaternion> min_q(q, laser_scan_msg.header.stamp,
                                     laser_scan_msg.header.frame_id);
-  q.setRPY(0.0, 0.0, laser_scan_msg.angle_min
-      + laser_scan_msg.angle_increment);
+  q.setRPY(0.0, 0.0, laser_scan_msg.angle_min + laser_scan_msg.angle_increment);
   tf::Stamped<tf::Quaternion> inc_q(q, laser_scan_msg.header.stamp,
                                     laser_scan_msg.header.frame_id);
 
-  try {
+  try
+  {
     tf_listener_ptr_->transformQuaternion(base_frame_,
                                           min_q,
                                           min_q);
@@ -410,7 +477,8 @@ void LocalizationNode::TransformLaserscanToBaseFrame(double &angle_min,
                                           inc_q,
                                           inc_q);
   }
-  catch (tf::TransformException &e) {
+  catch (tf::TransformException &e)
+  {
     LOG_WARNING << "Unable to transform min/max laser angles into base frame: " << e.what();
     return;
   }
@@ -420,18 +488,18 @@ void LocalizationNode::TransformLaserscanToBaseFrame(double &angle_min,
 
   // Wrapping angle to [-pi .. pi]
   angle_increment = (std::fmod(angle_increment + 5 * M_PI, 2 * M_PI) - M_PI);
-
-
 }
 
-double LocalizationNode::GetYawFromTfPose(const tf::Pose &tf_pose) {
+double LocalizationNode::GetYawFromTfPose(const tf::Pose &tf_pose)
+{
   double yaw, pitch, roll;
   tf_pose.getBasis().getEulerYPR(yaw, pitch, roll);
   return yaw;
 }
 
 void LocalizationNode::TransfromHypPoseToMsg(const HypPose &hyp_pose,
-                                             geometry_msgs::PoseWithCovarianceStamped &hyp_pose_msg) {
+                                             geometry_msgs::PoseWithCovarianceStamped &hyp_pose_msg)
+{
   hyp_pose_msg.header.frame_id = global_frame_;
   hyp_pose_msg.header.stamp = laser_msg_time_stamp_;
   hyp_pose_msg.pose.pose.position.x = hyp_pose.pose_mean[0];
@@ -439,28 +507,34 @@ void LocalizationNode::TransfromHypPoseToMsg(const HypPose &hyp_pose,
   tf::quaternionTFToMsg(tf::createQuaternionFromYaw(hyp_pose.pose_mean[2]),
                         hyp_pose_msg.pose.pose.orientation);
 
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
+  for (int i = 0; i < 2; i++)
+  {
+    for (int j = 0; j < 2; j++)
+    {
       hyp_pose_msg.pose.covariance[6 * i + j] = hyp_pose.pose_set_cov(i, j);
     }
   }
   hyp_pose_msg.pose.covariance[6 * 5 + 5] = hyp_pose.pose_set_cov(2, 2);
 }
 
-bool LocalizationNode::PublishUpdatedTF() {
+bool LocalizationNode::PublishUpdatedTF()
+{
   tf::Stamped<tf::Pose> odom_to_map;
-  try {
+  try
+  {
     tf::Transform tmp_tf(tf::createQuaternionFromYaw(hyp_pose_.pose_mean[2]),
                          tf::Vector3(hyp_pose_.pose_mean[0],
                                      hyp_pose_.pose_mean[1],
                                      0.0));
     tf::Stamped<tf::Pose> tmp_tf_stamped(tmp_tf.inverse(),
                                          laser_msg_time_stamp_,
-                                         localization_config_.base_frame_id());
+                                         base_frame_);
     this->tf_listener_ptr_->transformPose(odom_frame_,
                                           tmp_tf_stamped,
                                           odom_to_map);
-  } catch (tf::TransformException e) {
+  }
+  catch (tf::TransformException e)
+  {
     LOG_ERROR << "Failed to subtract base to odom transform" << e.what();
     return -1;
   }
@@ -469,8 +543,7 @@ bool LocalizationNode::PublishUpdatedTF() {
                              tf::Point(odom_to_map.getOrigin()));
   latest_tf_valid_ = true;
 
-  ros::Time transform_expiration = (laser_msg_time_stamp_
-      + transform_tolerance_);
+  ros::Time transform_expiration = (laser_msg_time_stamp_ + transform_tolerance_);
   tf::StampedTransform tmp_tf_stamped(latest_tf_.inverse(),
                                       transform_expiration,
                                       global_frame_,
@@ -479,9 +552,9 @@ bool LocalizationNode::PublishUpdatedTF() {
   sent_first_transform_ = true;
 }
 
-void LocalizationNode::PublishLatestValidTF() {
-  ros::Time transform_expiration = (laser_msg_time_stamp_
-      + transform_tolerance_);
+void LocalizationNode::PublishLatestValidTF()
+{
+  ros::Time transform_expiration = (laser_msg_time_stamp_ + transform_tolerance_);
   tf::StampedTransform tmp_tf_stamped(latest_tf_.inverse(),
                                       transform_expiration,
                                       global_frame_,
@@ -490,9 +563,8 @@ void LocalizationNode::PublishLatestValidTF() {
   this->tf_broadcaster_ptr_->sendTransform(tmp_tf_stamped);
 }
 
+} // namespace localization
+} // namespace perception
+} // namespace rrts
 
-}
-}
-}
-
-MAIN(rrts::perception::localization::LocalizationNode,"LocalizationNode");
+MAIN(rrts::perception::localization::LocalizationNode, "LocalizationNode");

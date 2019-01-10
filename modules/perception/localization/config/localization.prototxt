@@ -1,13 +1,14 @@
 odom_frame_id        : "odom"
 base_frame_id        : "base_link"
 global_frame_id      : "map"
-laser_topic_name     : "scan"
-map_topic_name       : "map"
+laser_topic_name     : "base_scan"
+#laser_topic_name     : "scan"
+map_topic_name       : "/map"
 init_pose_topic_name : "initialpose"
 transform_tolerance  : 0.1
 
-initial_pose_x :1 #8.40 #1.0
-initial_pose_y :1 #14.35 #1.0
+initial_pose_x :1
+initial_pose_y :1
 initial_pose_a :0
 initial_cov_xx :0.1
 initial_cov_yy :0.1

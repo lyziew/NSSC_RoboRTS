@@ -10,7 +10,6 @@
   
   <!-- Run the Stage Simulator -->
   <node pkg="stage_ros" type="stageros" name="stageros" args="$(find roborts)/tools/worlds/$(arg map).world" respawn="false" >
-    <remap from="base_scan" to="scan"/> 
     <param name="base_watchdog_timeout" value="0.01"/>
   </node>
   
@@ -18,7 +17,7 @@
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find roborts)/tools/rviz/rm.rviz" />
 
   <!-- Run the SelfCheck Node -->
-  <node pkg="roborts" type="self_check_node" name="self_check_node" respawn="false" />
+  <!-- <node pkg="roborts" type="self_check_node" name="self_check_node" respawn="false" /> -->
 
   <!-- Run the Localization Node -->
   <node pkg="roborts" type="localization_node" name="localization_node" respawn="false" />
@@ -30,7 +29,7 @@
   <node pkg="roborts" type="local_planner_node" name="local_planner_node" respawn="false" />
 
   <!-- Run the Decision Node -->
-  <node pkg="roborts" type="test_decision_node" name="test_decision_node" respawn="false" />
+  <node pkg="roborts" type="sim_decision_node" name="sim_decision_node" respawn="false" />
 
 
 </launch>
