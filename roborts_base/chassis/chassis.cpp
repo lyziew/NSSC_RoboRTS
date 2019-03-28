@@ -59,6 +59,7 @@ void Chassis::SDK_Init(){
   chassis_spd_acc_pub_ = handle_->CreatePublisher<roborts_sdk::cmd_chassis_spd_acc>(CHASSIS_CMD_SET, CMD_SET_CHASSIS_SPD_ACC,
                                                                                     MANIFOLD2_ADDRESS, CHASSIS_ADDRESS);
 
+  //心跳服务
   heartbeat_pub_ = handle_->CreatePublisher<roborts_sdk::cmd_heartbeat>(UNIVERSAL_CMD_SET, CMD_HEARTBEAT,
                                                                         MANIFOLD2_ADDRESS, CHASSIS_ADDRESS);
   heartbeat_thread_ = std::thread([this]{

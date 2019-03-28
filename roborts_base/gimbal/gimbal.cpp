@@ -61,7 +61,7 @@ void Gimbal::SDK_Init(){
                                                                                 MANIFOLD2_ADDRESS, GIMBAL_ADDRESS);
   gimbal_shoot_pub_ = handle_->CreatePublisher<roborts_sdk::cmd_shoot_info>(GIMBAL_CMD_SET, CMD_SET_SHOOT_INFO,
                                                                             MANIFOLD2_ADDRESS, GIMBAL_ADDRESS);
-
+  //心跳服务
   heartbeat_pub_ = handle_->CreatePublisher<roborts_sdk::cmd_heartbeat>(UNIVERSAL_CMD_SET, CMD_HEARTBEAT,
                                                                         MANIFOLD2_ADDRESS, GIMBAL_ADDRESS);
   heartbeat_thread_ = std::thread([this]{

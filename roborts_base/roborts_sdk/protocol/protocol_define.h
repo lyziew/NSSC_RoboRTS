@@ -69,20 +69,20 @@ typedef struct
 
 /*-----------------------------REFEREE_SEND_CMD--- 0x01 ---------------------*/
 #define CMD_REFEREE_SEND_DATA               (0X01u)
-
+//补给指令
 typedef struct
 {
   uint16_t cmd = 0x0103u;
-  uint8_t supply_projectile_id;
-  uint8_t supply_robot_id;
-  uint8_t supply_num;
+  uint8_t supply_projectile_id;//补给战ID
+  uint8_t supply_robot_id;//补给机器人ID
+  uint8_t supply_num;//补给数量
 } cmd_supply_projectile_booking;
 
 /*-------------------REFEREE_CMD--- 0x01 SEND 0x43 RECEIVE------------------*/
 /*  Define your own protocol for comm between different robots here*/
 /*    typedef __packed struct
 /*    {
-/*        uint16_t cmd;
+/*        uint16_t cmd;//0x0200~0x02FF可以在以上 ID 段选取,具体 ID 含义由参赛队自定义
 /*        uint16_t sender_robot_id;
 /*        uint16_t receiver_robot_id;
 /*        CertainType data;
@@ -90,7 +90,7 @@ typedef struct
  */
 
 /*-----------------------------CHASSIS_CMD---- 0x02 ---------------------*/
-
+//地盘信息反馈
 #define CMD_PUSH_CHASSIS_INFO          (0X01u)
 typedef struct {
   int16_t gyro_angle;
@@ -102,6 +102,7 @@ typedef struct {
   int16_t v_y_mm;
 } cmd_chassis_info;
 
+//地盘速度控制
 #define CMD_SET_CHASSIS_SPEED          (0X03u)
 typedef struct {
   int16_t vx;
@@ -111,6 +112,7 @@ typedef struct {
   int16_t rotate_y_offset;
 } cmd_chassis_speed;
 
+//获取地盘参数 暂时无用
 #define CMD_GET_CHASSIS_PARAM          (0X04u)
 typedef struct {
   uint16_t wheel_perimeter;
@@ -120,6 +122,7 @@ typedef struct {
   int16_t gimbal_y_offset;
 } cmd_chassis_param;
 
+//地盘加速度控制
 #define CMD_SET_CHASSIS_SPD_ACC        (0X05u)
 typedef struct {
   int16_t vx;
@@ -133,7 +136,7 @@ typedef struct {
 } cmd_chassis_spd_acc;
 
 /*-----------------------------GIMBAL_CMD---- 0x03 ---------------------*/
-
+//云台信息反馈
 #define CMD_PUSH_GIMBAL_INFO           (0X01u)
 typedef struct {
   uint8_t mode;
@@ -145,6 +148,7 @@ typedef struct {
   int16_t pitch_rate;
 } cmd_gimbal_info;
 
+//设置云台模式
 #define CMD_SET_GIMBAL_MODE            (0X02u)
 typedef enum {
   GYRO_CONTROL,
@@ -152,6 +156,7 @@ typedef enum {
   G_MODE_MAX_NUM,
 } gimbal_mode_e;
 
+//设置云台角度
 #define CMD_SET_GIMBAL_ANGLE           (0x03u)
 typedef struct{
   union{
@@ -165,28 +170,34 @@ typedef struct{
   int16_t yaw;
 }cmd_gimbal_angle;
 
+
+//设置摩擦轮速度1200以上
 #define CMD_SET_FRIC_WHEEL_SPEED       (0X04u)
 typedef struct{
   uint16_t left;
   uint16_t right;
 } cmd_fric_wheel_speed;
 
+//设置射击
 #define CMD_SET_SHOOT_INFO             (0x05u)
+//射击模式
 typedef enum {
   SHOOT_STOP = 0,
   SHOOT_ONCE,
   SHOOT_CONTINUOUS,
 } shoot_cmd_e;
 
+//射击信息
 typedef struct {
-  uint8_t shoot_cmd;
-  uint32_t shoot_add_num;
-  uint16_t shoot_freq;
+  uint8_t shoot_cmd;//射击模式
+  uint32_t shoot_add_num;//射击子弹数量
+  uint16_t shoot_freq;//射击频率?
 } cmd_shoot_info;
 
 /*------------------------COMPATIBLE_CMD---- 0x04 -------------------*/
 #define CMD_RC_DATA_FORWARD            (0X01u)
 
+//UWB数据
 #define CMD_PUSH_UWB_INFO              (0X02u)
 typedef struct {
   int16_t x;
@@ -229,10 +240,10 @@ typedef struct
 #define CMD_SUPPLIER_ACTION        (0X02u)
 typedef struct
 {
-  uint8_t supply_projectile_id;
-  uint8_t supply_robot_id;
-  uint8_t supply_projectile_step;
-  uint8_t supply_projectile_num;
+  uint8_t supply_projectile_id;//补给战ID
+  uint8_t supply_robot_id;//补给机器人ID
+  uint8_t supply_projectile_step;//出弹口开闭状态:0 为关闭,1 为子弹准备中,2 为子弹下落
+  uint8_t supply_projectile_num;//补给弹药量
 } cmd_supply_projectile_action;
 
 
@@ -265,6 +276,8 @@ typedef struct
   uint16_t shooter_heat1;//无用
 } cmd_power_heat_data;
 
+
+//此变量目前没有用
 #define CMD_ROBOT_POSITION            (0X03u)
 typedef struct
 {
