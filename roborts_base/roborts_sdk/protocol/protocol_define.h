@@ -18,7 +18,13 @@
 #define ROBORTS_SDK_PROTOCOL_DEFINE_H
 
 namespace roborts_sdk {
-
+/*
+#pragma pack (n)              作用：C编译器将按照n个字节对齐。
+#pragma pack ()               作用：取消自定义字节对齐方式。
+#pragma  pack (push,1)        作用：是指把原来对齐方式设置压栈，并设新的对齐方式设置为一个字节对齐
+等同于调用 #pragma pack(push) #pragma pack(1)
+#pragma pack(pop)             作用：恢复对齐状态
+*/
 #pragma pack(push, 1)
 //DEVICE_ADDRESS
 #define MANIFOLD2_ADDRESS              (0x00u)
@@ -26,16 +32,24 @@ namespace roborts_sdk {
 #define GIMBAL_ADDRESS                 (0X02u)
 #define BROADCAST_ADDRESS              (0Xffu)
 
-//CMD_SET                            
+//CMD_SET
+//开启通讯的命令,用于初始化上位机与A型板的通讯                            
 #define UNIVERSAL_CMD_SET              (0x00u)
+//用于向裁判系统发送指令,用于补给
 #define REFEREE_SEND_CMD_SET           (0x01u)
+//地盘通信指令,用于发送和接收来自地盘的数据
 #define CHASSIS_CMD_SET                (0x02u)
+//云台通信指令,用于发送和接收来自云台的数据
 #define GIMBAL_CMD_SET                 (0x03u)
+//校准指令
 #define COMPATIBLE_CMD_SET             (0x04u)
 
-
+//裁判系统数据
+//用于获取比赛状态数据,包括赛程状态,比赛结果,双方机器人存活状态
 #define REFEREE_GAME_CMD_SET           (0x40u)
+//用于获取场地B数据,Buff区和补给区状态
 #define REFEREE_BATTLEFIELD_CMD_SET    (0x41u)
+//用于获取机器人状态,机器人当前状态.热量状态,buff状态,是否受到伤害,射击数据
 #define REFEREE_ROBOT_CMD_SET          (0x42u)
 #define REFEREE_RECEIVE_CMD_SET        (0x43u)
 
@@ -226,15 +240,16 @@ typedef struct
 #define CMD_ROBOT_STATUS           (0X01u)
 typedef struct
 {
-  uint8_t robot_id;
+  uint8_t robot_id; //红 3,4 蓝13,14
   uint8_t robot_level;
   uint16_t remain_HP;
   uint16_t max_HP;
-  uint16_t shooter_heat0_cooling_rate;
-  uint16_t shooter_heat0_cooling_limit;
-  uint16_t shooter_heat1_cooling_rate;
-  uint16_t shooter_heat1_cooling_limit;
-  uint8_t mains_power_gimbal_output : 1;
+  uint16_t shooter_heat0_cooling_rate;//冷却率
+  uint16_t shooter_heat0_cooling_limit;//热量上限
+  uint16_t shooter_heat1_cooling_rate;//无用
+  uint16_t shooter_heat1_cooling_limit;//无用
+  //C语言允许在一个结构体中以位为单位来指定其成员所占内存长度，这种以位为单位的成员称为“位段”或称“位域”( bit field)
+  uint8_t mains_power_gimbal_output : 1; //电源输出情况,1为有电,0为没电
   uint8_t mains_power_chassis_output : 1;
   uint8_t mains_power_shooter_output : 1;
 } cmd_game_robot_state;
@@ -242,12 +257,12 @@ typedef struct
 #define CMD_ROBOT_POWER_HEAT         (0X02u)
 typedef struct
 {
-  uint16_t chassis_volt;
-  uint16_t chassis_current;
-  float chassis_power;
-  uint16_t chassis_power_buffer;
-  uint16_t shooter_heat0;
-  uint16_t shooter_heat1;
+  uint16_t chassis_volt;//无用
+  uint16_t chassis_current;//无用
+  float chassis_power;//无用
+  uint16_t chassis_power_buffer;//无用
+  uint16_t shooter_heat0;//当前热量
+  uint16_t shooter_heat1;//无用
 } cmd_power_heat_data;
 
 #define CMD_ROBOT_POSITION            (0X03u)
