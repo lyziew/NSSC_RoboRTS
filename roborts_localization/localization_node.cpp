@@ -72,9 +72,28 @@ bool LocalizationNode::Init()
   map_init_ = GetStaticMap();
   laser_init_ = GetLaserPose();
 
+  enable_uwb_ = localization_config.enable_uwb;
+  if (enable_uwb_)
+  {
+    LOG_INFO << "Enable uwb correction!";
+    uwb_frame_ = localization_config.uwb_frame_id;
+    uwb_topic_name_ = localization_config.uwb_topic_name;
+    if (localization_config.uwb_correction_frequency > 0)
+    {
+      uwb_thread_delay_ = static_cast<int>(1 / localization_config.uwb_correction_frequency * 1000);
+    }
+    else
+    {
+      uwb_thread_delay_ = 50.0;
+    }
+    uwb_pose_sub_ = nh_.subscribe("uwb", 10, &LocalizationNode::UwbCallback, this);
+    uwb_amcl_thread_ = std::thread(std::bind(&LocalizationNode::UwbAmclThread, this));
+  }
+
   return map_init_ && laser_init_;
 }
 
+// 从MapServer中获取static_map并初始化位置
 bool LocalizationNode::GetStaticMap()
 {
   static_map_srv_ = nh_.serviceClient<nav_msgs::GetMap>("static_map");
@@ -95,6 +114,7 @@ bool LocalizationNode::GetStaticMap()
   }
 }
 
+// 获取激光雷达的初始位置与姿态
 bool LocalizationNode::GetLaserPose()
 {
   auto laser_scan_msg = ros::topic::waitForMessage<sensor_msgs::LaserScan>(laser_topic_);
@@ -353,6 +373,81 @@ void LocalizationNode::TransformLaserscanToBaseFrame(double &angle_min,
 
   // Wrapping angle to [-pi .. pi]
   angle_increment = (std::fmod(angle_increment + 5 * M_PI, 2 * M_PI) - M_PI);
+}
+
+void LocalizationNode::UwbCallback(const geometry_msgs::PoseStamped::ConstPtr &uwb_msg)
+{
+
+  if (!first_map_received_ || !amcl_ptr_->CheckTfUpdate())
+  {
+    return;
+  }
+
+  ros::Time current_time = ros::Time::now();
+  tf::Stamped<tf::Pose> uwb_pose_in_uwb, uwb_pose_in_map;
+  tf::poseStampedMsgToTF(*uwb_msg, uwb_pose_in_uwb);
+  uwb_pose_in_uwb.stamp_ = ros::Time(0);
+  bool error = false;
+  try
+  {
+    tf_listener_ptr_->transformPose("map", uwb_pose_in_uwb, uwb_pose_in_map);
+  }
+  catch (tf::TransformException e)
+  {
+    error = true;
+    update_uwb_ = false;
+    LOG_ERROR << "Uwb Callback TF error: " << e.what();
+  }
+  if (uwb_init_)
+  {
+
+    Vec3d uwb_pose_now;
+    uwb_pose_now << uwb_pose_in_map.getOrigin().x(),
+        uwb_pose_in_map.getOrigin().y(),
+        0;
+
+    auto dt = (current_time - uwb_latest_time);
+    if (dt.toSec() > 0)
+    {
+      uwb_latest_time = current_time;
+      uwb_odom_vel_(0) = (uwb_pose_now(0) - uwb_latest_pose_(0)) / dt.toSec();
+      uwb_odom_vel_(1) = (uwb_pose_now(1) - uwb_latest_pose_(1)) / dt.toSec();
+
+      uwb_latest_pose_ = uwb_pose_now;
+      update_uwb_ = true;
+    }
+  }
+  else if (!error)
+  {
+    LOG_INFO << "UWB Callback Init";
+    uwb_latest_pose_ << uwb_pose_in_map.getOrigin().x(),
+        uwb_pose_in_map.getOrigin().y(),
+        0;
+    uwb_latest_time = current_time;
+    uwb_init_ = true;
+  }
+}
+
+void LocalizationNode::UwbAmclThread()
+{
+  while (ros::ok())
+  {
+    while (!first_map_received_ && !uwb_init_ || !amcl_ptr_->CheckTfUpdate())
+    {
+      if (!ros::ok())
+      {
+        DLOG_INFO << "Uwb Amcl Thread End";
+        return;
+      }
+      usleep(1);
+    }
+    if (update_uwb_)
+    {
+      amcl_ptr_->UpdateUwb(uwb_latest_pose_);
+      update_uwb_ = false;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(uwb_thread_delay_));
+  }
 }
 
 } // namespace roborts_localization

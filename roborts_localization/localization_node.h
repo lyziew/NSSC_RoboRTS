@@ -42,11 +42,12 @@
 
 #define THREAD_NUM 4 // ROS SPIN THREAD NUM
 
-namespace roborts_localization {
+namespace roborts_localization
+{
 
-class LocalizationNode {
- public:
-
+class LocalizationNode
+{
+public:
   /**
    * @brief Localization Node construct function
    * @param name Node name
@@ -82,8 +83,17 @@ class LocalizationNode {
    */
   bool PublishTf();
 
- private:
+  /**
+   * @brief Uwb message callback function
+   */
+  void UwbCallback(const geometry_msgs::PoseStamped::ConstPtr &uwb_msg);
 
+  /**
+   * @brief Uwb update thread
+   */
+  void UwbAmclThread();
+
+private:
   bool GetPoseFromTf(const std::string &target_frame,
                      const std::string &source_frame,
                      const ros::Time &timestamp,
@@ -96,7 +106,8 @@ class LocalizationNode {
   void TransformLaserscanToBaseFrame(double &angle_min,
                                      double &angle_increment,
                                      const sensor_msgs::LaserScan &laser_scan_msg);
- private:
+
+private:
   //Mutex
   std::mutex mutex_;
 
@@ -135,7 +146,6 @@ class LocalizationNode {
   std::string laser_topic_;
   Vec3d init_pose_;
   Vec3d init_cov_;
-//  bool enable_uwb_;
   ros::Duration transform_tolerance_;
   bool publish_visualize_;
 
@@ -155,8 +165,21 @@ class LocalizationNode {
   ros::Time last_laser_msg_timestamp_;
   tf::Transform latest_tf_;
   tf::Stamped<tf::Pose> latest_odom_pose_;
+
+
+  //UWB
+  bool enable_uwb_ = false;
+  bool uwb_init_ = false;
+  bool update_uwb_ = false;
+  int uwb_thread_delay_ = 10;
+  std::string uwb_frame_;
+  std::string uwb_topic_name_;
+  std::thread uwb_amcl_thread_;
+  ros::Time uwb_latest_time;
+  Vec3d uwb_latest_pose_;
+  Vec3d uwb_odom_vel_;
 };
 
-}// roborts_localization
+} // namespace roborts_localization
 
 #endif // ROBORTS_LOCALIZATION_LOCALIZATION_NODE_H

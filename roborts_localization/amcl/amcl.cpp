@@ -92,12 +92,15 @@ void Amcl::Reset()
 
 void Amcl::HandleMapMessage(const nav_msgs::OccupancyGrid &map_msg, const Vec3d &init_pose, const Vec3d &init_cov)
 {
+  // 重新初始化,置nullptr
   Reset();
+  // 重新初始化map
   map_ptr_.reset(new AmclMap());
   map_ptr_->ConvertFromMsg(map_msg);
 
   // Index of free space
   // 初始化free space
+  // free space 是指地图值为0的
   Amcl::free_space_indices.resize(0);
   for (int i = 0; i < map_ptr_->GetSizeX(); i++)
   {
@@ -109,6 +112,7 @@ void Amcl::HandleMapMessage(const nav_msgs::OccupancyGrid &map_msg, const Vec3d 
       }
     }
   }
+
   // 初始化粒子滤波器
   pf_ptr_.reset(new ParticleFilter(amcl_param_.min_particles,
                                    amcl_param_.max_particles,
@@ -118,20 +122,23 @@ void Amcl::HandleMapMessage(const nav_msgs::OccupancyGrid &map_msg, const Vec3d 
                                    map_ptr_));
   // 设置KLD参数
   pf_ptr_->SetKldParam(amcl_param_.kld_err, amcl_param_.kld_z);
-  // 从参数中初始化位姿和方差到pf中
-  // UpdatePoseFromParam(init_pose, init_cov);
+ 
+#pragma region 似乎是重复的代码
+   // 从参数中初始化位姿和方差到pf中
+  UpdatePoseFromParam(init_pose, init_cov);
+  Vec3d pf_init_pose_mean;
+  Mat3d pf_init_pose_cov;
+  pf_init_pose_cov.setZero();
+  pf_init_pose_mean.setZero();
+  pf_init_pose_mean = init_pose_;
+  pf_init_pose_cov(0, 0) = init_cov_(0);
+  pf_init_pose_cov(1, 1) = init_cov_(1);
+  pf_init_pose_cov(2, 2) = init_cov_(2);
+  pf_ptr_->InitByGuassian(pf_init_pose_mean, pf_init_pose_cov);
+  pf_init_ = false;
 
-  // Vec3d pf_init_pose_mean;
-  // Mat3d pf_init_pose_cov;
-  // pf_init_pose_cov.setZero();
-  // pf_init_pose_mean.setZero();
-  // pf_init_pose_mean = init_pose_;
-  // pf_init_pose_cov(0, 0) = init_cov_(0);
-  // pf_init_pose_cov(1, 1) = init_cov_(1);
-  // pf_init_pose_cov(2, 2) = init_cov_(2);
-  // pf_ptr_->InitByGuassian(pf_init_pose_mean, pf_init_pose_cov);
-  // pf_init_ = false;
-
+#pragma endregion
+  // 初始odom和laser模型
   odom_model_ptr_ = std::make_unique<SensorOdom>(amcl_param_.odom_alpha1,
                                                  amcl_param_.odom_alpha2,
                                                  amcl_param_.odom_alpha3,
@@ -140,6 +147,7 @@ void Amcl::HandleMapMessage(const nav_msgs::OccupancyGrid &map_msg, const Vec3d 
 
   laser_model_ptr_ = std::make_unique<SensorLaser>(amcl_param_.laser_max_beams,
                                                    map_ptr_);
+  // 初始化likelihood模型
   LOG_INFO << "Initializing likelihood field model( this can take some time on large maps)";
   laser_model_ptr_->SetModelLikelihoodFieldProb(amcl_param_.z_hit,
                                                 amcl_param_.z_rand,
@@ -152,6 +160,7 @@ void Amcl::HandleMapMessage(const nav_msgs::OccupancyGrid &map_msg, const Vec3d 
                                                 amcl_param_.laser_filter_weight);
   LOG_INFO << "Done initializing likelihood field model.";
 
+  //初始化初始位姿
   if (use_global_localization_)
   {
     GlobalLocalization();
@@ -262,12 +271,17 @@ void Amcl::SetLaserSensorPose(Vec3d laser_pose)
   laser_model_ptr_->SetLaserPose(laser_pose);
 }
 
+// 随机选取一个位置和角度
+// drand48() 返回[0.0, 1.0)之间的一个随机的double
 Vec3d Amcl::UniformPoseGenerator()
 {
+  //从free_space_dndices中随机选取一个位置
   auto rand_index = static_cast<unsigned int>(drand48() * free_space_indices.size());
   std::pair<int, int> free_point = free_space_indices[rand_index];
   Vec3d p;
+  //获取世界坐标系下的wx,wy
   map_ptr_->ConvertMapCoordsToWorldCoords(free_point.first, free_point.second, p[0], p[1]);
+  //随机一个角度
   p[2] = drand48() * 2 * M_PI - M_PI;
   return p;
 }
