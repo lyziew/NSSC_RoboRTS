@@ -36,20 +36,20 @@
  *
  */
 
-
-
 #include "particle_filter.h"
 #include "particle_filter_gaussian_pdf.h"
 #include "sensors/sensor_laser.h"
 
-namespace roborts_localization {
+namespace roborts_localization
+{
 
 ParticleFilter::ParticleFilter(int min_samples,
                                int max_samples,
                                double alpha_slow,
                                double alpha_fast,
                                const PfInitModelFunc &random_pose_func,
-                               const std::shared_ptr<AmclMap> &map_ptr) {
+                               const std::shared_ptr<AmclMap> &map_ptr)
+{
   min_samples_ = min_samples;
   max_samples_ = max_samples;
   alpha_slow_ = alpha_slow;
@@ -62,11 +62,13 @@ ParticleFilter::ParticleFilter(int min_samples,
   random_pose_func_ = random_pose_func;
   map_ptr_ = map_ptr;
 
-  for (auto &sample_set_it : sample_set_ptr_array_) {
+  for (auto &sample_set_it : sample_set_ptr_array_)
+  {
     sample_set_it = std::make_shared<ParticleFilterSampleSet>();
     sample_set_it->sample_count = max_samples;
     sample_set_it->samples_vec.resize(max_samples);
-    for (int i = 0; i < sample_set_it->sample_count; i++) {
+    for (int i = 0; i < sample_set_it->sample_count; i++)
+    {
       sample_set_it->samples_vec[i].weight = 1.0 / max_samples;
     }
 
@@ -86,12 +88,13 @@ ParticleFilter::ParticleFilter(int min_samples,
   alpha_fast_ = alpha_fast;
 
   InitConverged();
-
 }
 
-ParticleFilter::~ParticleFilter() {
+ParticleFilter::~ParticleFilter()
+{
   int i;
-  for (i = 0; i < 2; i++) {
+  for (i = 0; i < 2; i++)
+  {
     this->sample_set_ptr_array_[i]->clusters_vec.clear();
     this->sample_set_ptr_array_[i]->kd_tree_ptr.reset();
     this->sample_set_ptr_array_[i]->clusters_vec.shrink_to_fit();
@@ -101,7 +104,8 @@ ParticleFilter::~ParticleFilter() {
   LOG_INFO << "Delete pf";
 }
 
-void ParticleFilter::InitByGuassian(const Vec3d &mean, const Mat3d &cov) {
+void ParticleFilter::InitByGuassian(const Vec3d &mean, const Mat3d &cov)
+{
   int i;
   auto sample_set_ptr = sample_set_ptr_array_[current_set_];
 
@@ -111,7 +115,8 @@ void ParticleFilter::InitByGuassian(const Vec3d &mean, const Mat3d &cov) {
 
   auto pf_gaussian_pdf = ParticleFilterGaussianPdf(mean, cov);
 
-  for (i = 0; i < sample_set_ptr->sample_count; i++) {
+  for (i = 0; i < sample_set_ptr->sample_count; i++)
+  {
     sample_set_ptr->samples_vec[i].weight = 1.0 / max_samples_;
     sample_set_ptr->samples_vec[i].pose = pf_gaussian_pdf.GenerateSample();
     sample_set_ptr->kd_tree_ptr->InsertPose(sample_set_ptr->samples_vec[i].pose,
@@ -122,25 +127,28 @@ void ParticleFilter::InitByGuassian(const Vec3d &mean, const Mat3d &cov) {
 
   ClusterStatistics(sample_set_ptr);
   InitConverged();
-
 }
 
-bool ParticleFilter::UpdateConverged() {
+bool ParticleFilter::UpdateConverged()
+{
   auto sample_set_ptr = sample_set_ptr_array_[current_set_];
   double mean_x = 0, mean_y = 0;
 
   int i;
 
-  for (i = 0; i < sample_set_ptr->sample_count; i++) {
+  for (i = 0; i < sample_set_ptr->sample_count; i++)
+  {
     mean_x += sample_set_ptr->samples_vec[i].pose(0);
     mean_y += sample_set_ptr->samples_vec[i].pose(1);
   }
   mean_x /= sample_set_ptr->sample_count;
   mean_y /= sample_set_ptr->sample_count;
 
-  for (i = 0; i < sample_set_ptr->sample_count; i++) {
+  for (i = 0; i < sample_set_ptr->sample_count; i++)
+  {
     if (std::fabs(sample_set_ptr->samples_vec[i].pose(0) - mean_x) > this->dist_threshold_ ||
-        std::fabs(sample_set_ptr->samples_vec[i].pose(1) - mean_y) > this->dist_threshold_) {
+        std::fabs(sample_set_ptr->samples_vec[i].pose(1) - mean_y) > this->dist_threshold_)
+    {
       sample_set_ptr->converged = false;
       this->converged_ = false;
       return false;
@@ -152,16 +160,19 @@ bool ParticleFilter::UpdateConverged() {
   return true;
 }
 
-void ParticleFilter::InitConverged() {
+void ParticleFilter::InitConverged()
+{
   this->sample_set_ptr_array_[current_set_]->converged = false;
   this->converged_ = false;
 }
 
-void ParticleFilter::ClusterStatistics() {
+void ParticleFilter::ClusterStatistics()
+{
   ClusterStatistics(this->sample_set_ptr_array_[0]);
 }
 
-void ParticleFilter::ClusterStatistics(const SampleSetPtr &sample_set_ptr) {
+void ParticleFilter::ClusterStatistics(const SampleSetPtr &sample_set_ptr)
+{
   int i, j, k;
   int cluster_index;
   ParticleFilterCluster *cluster;
@@ -178,7 +189,8 @@ void ParticleFilter::ClusterStatistics(const SampleSetPtr &sample_set_ptr) {
   // Initialize cluster stats
   sample_set_ptr->cluster_count = 0;
 
-  for (i = 0; i < sample_set_ptr->cluster_max_count; i++) {
+  for (i = 0; i < sample_set_ptr->cluster_max_count; i++)
+  {
     sample_set_ptr->clusters_vec[i].Reset();
   }
   // Initialize overall filter stats
@@ -190,18 +202,22 @@ void ParticleFilter::ClusterStatistics(const SampleSetPtr &sample_set_ptr) {
   tmp_ws_vec.setZero();
 
   // Compute cluster stats
-  for (i = 0; i < sample_set_ptr->sample_count; i++) {
+  for (i = 0; i < sample_set_ptr->sample_count; i++)
+  {
     auto sample_it = sample_set_ptr->samples_vec[i];
     // Get the cluster label for this sample
     cluster_index = sample_set_ptr->kd_tree_ptr->GetCluster(sample_it.pose);
-    if (cluster_index < 0) {
+    if (cluster_index < 0)
+    {
       LOG_ERROR << "Cluster not found";
       return;
     }
-    if (cluster_index >= sample_set_ptr->cluster_max_count) {
+    if (cluster_index >= sample_set_ptr->cluster_max_count)
+    {
       continue;
     }
-    if (cluster_index + 1 > sample_set_ptr->cluster_count) {
+    if (cluster_index + 1 > sample_set_ptr->cluster_count)
+    {
       sample_set_ptr->cluster_count = cluster_index + 1;
     }
 
@@ -223,17 +239,20 @@ void ParticleFilter::ClusterStatistics(const SampleSetPtr &sample_set_ptr) {
     tmp_ws_vec(3) += sample_it.weight * std::sin(sample_it.pose(2));
 
     // Compute covariance in linear components
-    for (int j = 0; j < 2; j++) {
-      for (int k = 0; k < 2; k++) {
+    for (int j = 0; j < 2; j++)
+    {
+      for (int k = 0; k < 2; k++)
+      {
         cluster = &sample_set_ptr->clusters_vec[cluster_index];
         cluster->cov(j, k) = cluster->ws_mat(j, k) / cluster->weight -
-            cluster->mean(j) * cluster->mean(k);
+                             cluster->mean(j) * cluster->mean(k);
       }
     }
   }
 
   // Normalize
-  for (i = 0; i < sample_set_ptr->cluster_count; i++) {
+  for (i = 0; i < sample_set_ptr->cluster_count; i++)
+  {
 
     cluster = &sample_set_ptr->clusters_vec[i];
 
@@ -244,19 +263,20 @@ void ParticleFilter::ClusterStatistics(const SampleSetPtr &sample_set_ptr) {
     cluster->cov.setZero();
 
     // Covariance in linear components
-    for (j = 0; j < 2; j++) {
-      for (k = 0; k < 2; k++) {
+    for (j = 0; j < 2; j++)
+    {
+      for (k = 0; k < 2; k++)
+      {
         cluster->cov(j, k) = cluster->ws_mat(j, k) / cluster->weight -
-            cluster->mean(j) * cluster->mean(k);
+                             cluster->mean(j) * cluster->mean(k);
       }
     }
 
     // Covariance in angular components
     cluster->cov(2, 2) = -2 * std::log(
-        std::sqrt(
-            cluster->ws_vec(2) * cluster->ws_vec(2) +
-                cluster->ws_vec(3) * cluster->ws_vec(3)
-        ));
+                                  std::sqrt(
+                                      cluster->ws_vec(2) * cluster->ws_vec(2) +
+                                      cluster->ws_vec(3) * cluster->ws_vec(3)));
     DLOG_INFO << "cluster: " << cluster->count
               << "," << cluster->weight
               << "," << cluster->mean(0)
@@ -269,8 +289,10 @@ void ParticleFilter::ClusterStatistics(const SampleSetPtr &sample_set_ptr) {
   sample_set_ptr->mean(2) = std::atan2(tmp_ws_vec(3), tmp_ws_vec(2));
 
   // Covariance in linear components
-  for (j = 0; j < 2; j++) {
-    for (k = 0; k < 2; k++) {
+  for (j = 0; j < 2; j++)
+  {
+    for (k = 0; k < 2; k++)
+    {
       sample_set_ptr->covariant(j, k) = tmp_ws_mat(j, k) / weight - sample_set_ptr->mean(j) * sample_set_ptr->mean(k);
     }
   }
@@ -278,15 +300,16 @@ void ParticleFilter::ClusterStatistics(const SampleSetPtr &sample_set_ptr) {
   // Covariance in angular components;
   sample_set_ptr->covariant(2, 2) =
       -2 * std::log(std::sqrt(tmp_ws_vec(2) * tmp_ws_vec(2) + tmp_ws_vec(3) * tmp_ws_vec(3)));
-
 }
 
 int ParticleFilter::GetClusterStatistics(int clabel,
                                          double *weight,
                                          Vec3d *mean,
-                                         Mat3d *cov) {
+                                         Mat3d *cov)
+{
   auto set = this->sample_set_ptr_array_[current_set_];
-  if (clabel >= set->sample_count) {
+  if (clabel >= set->sample_count)
+  {
     return 0;
   }
   *weight = set->clusters_vec[clabel].weight;
@@ -294,50 +317,57 @@ int ParticleFilter::GetClusterStatistics(int clabel,
   *cov = set->clusters_vec[clabel].cov;
 
   return 1;
-
 }
 
-SampleSetPtr ParticleFilter::GetCurrentSampleSetPtr() const {
+SampleSetPtr ParticleFilter::GetCurrentSampleSetPtr() const
+{
   return this->sample_set_ptr_array_[current_set_];
 }
 
-int ParticleFilter::ResampleLimit(int k) {
+int ParticleFilter::ResampleLimit(int k)
+{
   double a, b, c, x;
   int n;
 
-  if (k <= 1) {
+  if (k <= 1)
+  {
     LOG_WARNING_IF(k != 1) << "K < 1 (kd_tree leaf count < 1)";
     return this->max_samples_;
   }
 
   a = 1.0;
-  b = 2.0 / (9.0 * ((double) k - 1.0));
-  c = std::sqrt(2.0 / (9.0 * ((double) k - 1))) * this->pop_z_;
+  b = 2.0 / (9.0 * ((double)k - 1.0));
+  c = std::sqrt(2.0 / (9.0 * ((double)k - 1))) * this->pop_z_;
   x = a - b + c;
 
-  n = (int) std::ceil((k - 1.0) / (2.0 * this->pop_err_) * x * x * x);
+  n = (int)std::ceil((k - 1.0) / (2.0 * this->pop_err_) * x * x * x);
 
-//  LOG_INFO << "Required number of samples = "<< n;
+  //  LOG_INFO << "Required number of samples = "<< n;
 
-  if (n < this->min_samples_) {
+  if (n < this->min_samples_)
+  {
     return this->min_samples_;
   }
-  if (n > this->max_samples_) {
+  if (n > this->max_samples_)
+  {
     return this->max_samples_;
   }
 
   return n;
 }
 
-void ParticleFilter::UpdateOmega(double total_weight) {
+void ParticleFilter::UpdateOmega(double total_weight)
+{
   int i = 0;
   auto set = GetCurrentSampleSetPtr();
 
-  if (total_weight > 0.0) {
+  if (total_weight > 0.0)
+  {
     // Normalize weights
     double w_avg = 0.0;
 
-    for (i = 0; i < set->sample_count; i++) {
+    for (i = 0; i < set->sample_count; i++)
+    {
       w_avg += set->samples_vec[i].weight;
       set->samples_vec[i].weight /= total_weight;
     }
@@ -353,15 +383,19 @@ void ParticleFilter::UpdateOmega(double total_weight) {
       this->w_fast_ = w_avg;
     else
       this->w_fast_ += this->alpha_fast_ * (w_avg - this->w_fast_);
-  } else {
-    for (i = 0; i < set->sample_count; i++) {
+  }
+  else
+  {
+    for (i = 0; i < set->sample_count; i++)
+    {
       auto sample = &set->samples_vec[i];
       sample->weight = 1.0 / set->sample_count;
     }
   }
 }
 
-void ParticleFilter::UpdateResample() {
+void ParticleFilter::UpdateResample()
+{
 
   double w_diff = 0;
   double total = 0;
@@ -379,7 +413,8 @@ void ParticleFilter::UpdateResample() {
   std::vector<double> c;
   c.resize(c_size);
   c[0] = 0.0;
-  for (i = 0; i < set_a->sample_count; i++) {
+  for (i = 0; i < set_a->sample_count; i++)
+  {
     c[i + 1] = c[i] + set_a->samples_vec[i].weight;
   }
 
@@ -390,20 +425,24 @@ void ParticleFilter::UpdateResample() {
   set_b->sample_count = 0;
 
   w_diff = 1.0 - this->w_fast_ / this->w_slow_;
-  if (w_diff < 0.0) {
+  if (w_diff < 0.0)
+  {
     w_diff = 0.0;
   }
 
-  while (set_b->sample_count < this->max_samples_) {
+  while (set_b->sample_count < this->max_samples_)
+  {
     sample_b = &set_b->samples_vec[set_b->sample_count++];
 
     if (drand48() < w_diff)
       sample_b->pose = (random_pose_func_)();
-    else {
+    else
+    {
       double r;
       r = drand48();
 
-      for (i = 0; i < set_a->sample_count; i++) {
+      for (i = 0; i < set_a->sample_count; i++)
+      {
         if ((c[i] <= r) && (r < c[i + 1]))
           break;
       }
@@ -423,7 +462,8 @@ void ParticleFilter::UpdateResample() {
     // See if we have enough samples yet
     DLOG_INFO << "Histogram bins num: " << set_b->kd_tree_ptr->GetLeafCount();
     auto kld_resample_num = ResampleLimit(set_b->kd_tree_ptr->GetLeafCount());
-    if (set_b->sample_count > kld_resample_num) {
+    if (set_b->sample_count > kld_resample_num)
+    {
       LOG_INFO << "KLD-Resample num : " << kld_resample_num;
       break;
     }
@@ -434,7 +474,8 @@ void ParticleFilter::UpdateResample() {
     this->w_slow_ = this->w_fast_ = 0.0;
 
   // Normalize weights
-  for (i = 0; i < set_b->sample_count; i++) {
+  for (i = 0; i < set_b->sample_count; i++)
+  {
     sample_b = &(set_b->samples_vec[i]);
     sample_b->weight /= total;
   }
@@ -443,11 +484,11 @@ void ParticleFilter::UpdateResample() {
   ClusterStatistics(set_b);
   current_set_ = (current_set_ + 1) % 2;
   UpdateConverged();
-//  c.reset();
-
+  //  c.reset();
 }
 
-void ParticleFilter::InitByModel(PfInitModelFunc init_fn) {
+void ParticleFilter::InitByModel(PfInitModelFunc init_fn)
+{
   int i;
   auto set = this->sample_set_ptr_array_[current_set_];
   // Create the kd tree for adaptive sampling
@@ -455,10 +496,12 @@ void ParticleFilter::InitByModel(PfInitModelFunc init_fn) {
   set->sample_count = max_samples_;
 
   // Compute the new sample poses
-  for (i = 0; i < set->sample_count; i++) {
+  for (i = 0; i < set->sample_count; i++)
+  {
     set->samples_vec[i].weight = 1.0 / this->max_samples_;
 
-    set->samples_vec[i].pose = init_fn();;
+    set->samples_vec[i].pose = init_fn();
+    ;
     // Add sample to histogram
     set->kd_tree_ptr->InsertPose(set->samples_vec[i].pose, set->samples_vec[i].weight);
   }
@@ -470,7 +513,8 @@ void ParticleFilter::InitByModel(PfInitModelFunc init_fn) {
   //set converged to 0
 }
 
-void ParticleFilter::InitByGuassianWithRandomHeading(const Vec3d &mean, const Mat3d &cov) {
+void ParticleFilter::InitByGuassianWithRandomHeading(const Vec3d &mean, const Mat3d &cov)
+{
   int i;
   auto sample_set_ptr = sample_set_ptr_array_[current_set_];
 
@@ -482,7 +526,8 @@ void ParticleFilter::InitByGuassianWithRandomHeading(const Vec3d &mean, const Ma
 
   auto pf_gaussian_pdf = ParticleFilterGaussianPdf(mean, cov);
 
-  for (i = 0; i < sample_set_ptr->sample_count; i++) {
+  for (i = 0; i < sample_set_ptr->sample_count; i++)
+  {
     sample_set_ptr->samples_vec[i].weight = 1.0 / max_samples_;
     sample_set_ptr->samples_vec[i].pose = pf_gaussian_pdf.GenerateSample();
     sample_set_ptr->samples_vec[i].pose[2] = drand48() * 2 * M_PI - M_PI;
@@ -494,12 +539,12 @@ void ParticleFilter::InitByGuassianWithRandomHeading(const Vec3d &mean, const Ma
 
   ClusterStatistics(sample_set_ptr);
   InitConverged();
-
 }
 
-void ParticleFilter::SetKldParam(double pop_err, double pop_z) {
+void ParticleFilter::SetKldParam(double pop_err, double pop_z)
+{
   this->pop_err_ = pop_err;
   this->pop_z_ = pop_z;
 }
 
-}// roborts_localization
+} // namespace roborts_localization
