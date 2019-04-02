@@ -26,6 +26,11 @@ LocalizationNode::LocalizationNode(std::string name)
   initialized_ = true;
 }
 
+LocalizationNode::~LocalizationNode()
+{
+  uwb_amcl_thread_.join();
+}
+
 bool LocalizationNode::Init()
 {
 
@@ -69,9 +74,6 @@ bool LocalizationNode::Init()
   amcl_ptr_->GetParamFromRos(&nh_);
   amcl_ptr_->Init(init_pose_, init_cov_);
 
-  map_init_ = GetStaticMap();
-  laser_init_ = GetLaserPose();
-
   enable_uwb_ = localization_config.enable_uwb;
   if (enable_uwb_)
   {
@@ -90,6 +92,8 @@ bool LocalizationNode::Init()
     uwb_amcl_thread_ = std::thread(std::bind(&LocalizationNode::UwbAmclThread, this));
   }
 
+  map_init_ = GetStaticMap();
+  laser_init_ = GetLaserPose();
   return map_init_ && laser_init_;
 }
 
@@ -377,11 +381,11 @@ void LocalizationNode::TransformLaserscanToBaseFrame(double &angle_min,
 
 void LocalizationNode::UwbCallback(const geometry_msgs::PoseStamped::ConstPtr &uwb_msg)
 {
-
-  if (!first_map_received_ || !amcl_ptr_->CheckTfUpdate())
-  {
-    return;
-  }
+  // 需要接收uwb数据初始化机器人初始位置
+  // if (!first_map_received_ || !amcl_ptr_->CheckTfUpdate())
+  // {
+  //   return;
+  // }
 
   ros::Time current_time = ros::Time::now();
   tf::Stamped<tf::Pose> uwb_pose_in_uwb, uwb_pose_in_map;
@@ -410,9 +414,9 @@ void LocalizationNode::UwbCallback(const geometry_msgs::PoseStamped::ConstPtr &u
     if (dt.toSec() > 0)
     {
       uwb_latest_time = current_time;
-      uwb_odom_vel_(0) = (uwb_pose_now(0) - uwb_latest_pose_(0)) / dt.toSec();
-      uwb_odom_vel_(1) = (uwb_pose_now(1) - uwb_latest_pose_(1)) / dt.toSec();
-
+      // 通过uwb数据估计速度没有用到
+      // uwb_odom_vel_(0) = (uwb_pose_now(0) - uwb_latest_pose_(0)) / dt.toSec();
+      // uwb_odom_vel_(1) = (uwb_pose_now(1) - uwb_latest_pose_(1)) / dt.toSec();
       uwb_latest_pose_ = uwb_pose_now;
       update_uwb_ = true;
     }

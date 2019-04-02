@@ -54,6 +54,8 @@ public:
    */
   LocalizationNode(std::string name);
 
+  ~LocalizationNode();
+
   /**
    * @brief Localization initialization
    * @return Returns true if initialize success
@@ -177,7 +179,7 @@ private:
   std::thread uwb_amcl_thread_;
   ros::Time uwb_latest_time;
   Vec3d uwb_latest_pose_;
-  Vec3d uwb_odom_vel_;
+  // Vec3d uwb_odom_vel_;
 };
 
 } // namespace roborts_localization

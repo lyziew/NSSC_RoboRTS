@@ -59,10 +59,10 @@ SensorOdom::SensorOdom(double alpha1,
 
 void SensorOdom::SetModelOmni(double alpha1, double alpha2, double alpha3, double alpha4, double alpha5) {
   odom_model_type_ = ODOM_MODEL_OMNI;
-  alpha1_ = alpha1;
-  alpha2_ = alpha2;
-  alpha3_ = alpha3;
-  alpha4_ = alpha4;
+  alpha1_ = alpha1; //估计旋转时来自旋转分量的噪声
+  alpha2_ = alpha2; //估计旋转时来自平移分量的噪声
+  alpha3_ = alpha3; //估计平移时来自平移分量的噪声
+  alpha4_ = alpha4; //估计平移时来自旋转分量的噪声
   alpha5_ = alpha5;
 }
 
@@ -71,15 +71,19 @@ bool SensorOdom::UpdateAction(SampleSetPtr sample_set_ptr, const SensorOdomData 
   DLOG_INFO << "Compute the new sample poses by motion model";
 
   Vec3d old_pose = (odom_data.pose) - (odom_data.delta);
-
+  // 方位
   double delta_bearing;
   double delta_trans_hat, delta_rot_hat, delta_strafe_hat;
   double delta_trans = std::sqrt(odom_data.delta[0] * odom_data.delta[0] + odom_data.delta[1] * odom_data.delta[1]);
   double delta_rot = odom_data.delta[2];
 
-  double trans_hat_stddev = std::sqrt(alpha3_ * (delta_trans * delta_trans) + alpha1_ * (delta_rot * delta_rot));
-  double rot_hat_stddev = std::sqrt(alpha4_ * (delta_rot * delta_rot) + alpha2_ * (delta_trans * delta_trans));
-  double strafe_hat_stddev = std::sqrt(alpha1_ * (delta_rot * delta_rot) + alpha5_ * (delta_trans * delta_trans));
+  // double trans_hat_stddev = std::sqrt(alpha3_ * (delta_trans * delta_trans) + alpha1_ * (delta_rot * delta_rot));
+  // double rot_hat_stddev = std::sqrt(alpha4_ * (delta_rot * delta_rot) + alpha2_ * (delta_trans * delta_trans));
+  // double strafe_hat_stddev = std::sqrt(alpha1_ * (delta_rot * delta_rot) + alpha5_ * (delta_trans * delta_trans));
+  double trans_hat_stddev = std::sqrt(alpha3_ * (delta_trans * delta_trans) + alpha4_ * (delta_rot * delta_rot));
+  double rot_hat_stddev = std::sqrt(alpha1_ * (delta_rot * delta_rot) + alpha2_ * (delta_trans * delta_trans));
+  double strafe_hat_stddev = std::sqrt(alpha4_ * (delta_rot * delta_rot) + alpha5_ * (delta_trans * delta_trans));
+
 
   for (int i = 0; i < sample_set_ptr->sample_count; i++) {
 

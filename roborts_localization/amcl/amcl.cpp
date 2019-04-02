@@ -122,9 +122,9 @@ void Amcl::HandleMapMessage(const nav_msgs::OccupancyGrid &map_msg, const Vec3d 
                                    map_ptr_));
   // 设置KLD参数
   pf_ptr_->SetKldParam(amcl_param_.kld_err, amcl_param_.kld_z);
- 
+
 #pragma region 似乎是重复的代码
-   // 从参数中初始化位姿和方差到pf中
+  // 从参数中初始化位姿和方差到pf中
   UpdatePoseFromParam(init_pose, init_cov);
   Vec3d pf_init_pose_mean;
   Mat3d pf_init_pose_cov;
@@ -138,16 +138,16 @@ void Amcl::HandleMapMessage(const nav_msgs::OccupancyGrid &map_msg, const Vec3d 
   pf_init_ = false;
 
 #pragma endregion
-  // 初始odom和laser模型
+  // 初运动模型
   odom_model_ptr_ = std::make_unique<SensorOdom>(amcl_param_.odom_alpha1,
                                                  amcl_param_.odom_alpha2,
                                                  amcl_param_.odom_alpha3,
                                                  amcl_param_.odom_alpha4,
                                                  amcl_param_.odom_alpha5);
-
+  // 初始化likelihood测量模型
   laser_model_ptr_ = std::make_unique<SensorLaser>(amcl_param_.laser_max_beams,
                                                    map_ptr_);
-  // 初始化likelihood模型
+  
   LOG_INFO << "Initializing likelihood field model( this can take some time on large maps)";
   laser_model_ptr_->SetModelLikelihoodFieldProb(amcl_param_.z_hit,
                                                 amcl_param_.z_rand,
@@ -161,6 +161,7 @@ void Amcl::HandleMapMessage(const nav_msgs::OccupancyGrid &map_msg, const Vec3d 
   LOG_INFO << "Done initializing likelihood field model.";
 
   //初始化初始位姿
+  // TODO: 使用uwb数据辅助初始化位资
   if (use_global_localization_)
   {
     GlobalLocalization();
@@ -286,6 +287,7 @@ Vec3d Amcl::UniformPoseGenerator()
   return p;
 }
 
+// 全局定位的方法
 bool Amcl::GlobalLocalization()
 {
   if (map_ptr_ == nullptr)
@@ -302,6 +304,7 @@ bool Amcl::GlobalLocalization()
   return true;
 }
 
+// 全局定位的方法
 bool Amcl::RandomHeadingGlobalLocalization()
 {
   if (map_ptr_ != nullptr)
@@ -411,9 +414,9 @@ void Amcl::UpdateOdomPoseData(Vec3d pose)
   Vec3d delta;
   delta.setZero();
 
+  // 通过运动幅度判断是否需要更新
   if (pf_init_)
   {
-
     // Compute change in pose
     delta[0] = pose[0] - pf_odom_pose_[0];
     delta[1] = pose[1] - pf_odom_pose_[1];
@@ -423,9 +426,6 @@ void Amcl::UpdateOdomPoseData(Vec3d pose)
     bool update = std::fabs(delta[0]) > d_thresh_ ||
                   std::fabs(delta[1]) > d_thresh_ ||
                   std::fabs(delta[2]) > a_thresh_;
-
-    //TODO
-    //    update = true;
 
     // Set the laser update flags
     if (update)
@@ -452,6 +452,7 @@ void Amcl::UpdateOdomPoseData(Vec3d pose)
     SensorOdomData odom_data;
     odom_data.pose = pose;
     odom_data.delta = delta;
+    // 使用运动模型更新粒子
     odom_model_ptr_->UpdateAction(pf_ptr_->GetCurrentSampleSetPtr(), odom_data);
   }
 }
@@ -507,6 +508,7 @@ void Amcl::UpdateLaser(const sensor_msgs::LaserScan &laser_scan,
   }
 
   total_weight_ = laser_model_ptr_->UpdateSensor(pf_ptr_, &laser_data);
+  // ???
   pf_ptr_->UpdateOmega(total_weight_);
 
   laser_update_ = false;
