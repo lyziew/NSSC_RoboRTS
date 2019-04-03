@@ -77,16 +77,17 @@ bool SensorOdom::UpdateAction(SampleSetPtr sample_set_ptr, const SensorOdomData 
   double delta_trans = std::sqrt(odom_data.delta[0] * odom_data.delta[0] + odom_data.delta[1] * odom_data.delta[1]);
   double delta_rot = odom_data.delta[2];
 
+  // 计算误差
   // double trans_hat_stddev = std::sqrt(alpha3_ * (delta_trans * delta_trans) + alpha1_ * (delta_rot * delta_rot));
   // double rot_hat_stddev = std::sqrt(alpha4_ * (delta_rot * delta_rot) + alpha2_ * (delta_trans * delta_trans));
   // double strafe_hat_stddev = std::sqrt(alpha1_ * (delta_rot * delta_rot) + alpha5_ * (delta_trans * delta_trans));
   double trans_hat_stddev = std::sqrt(alpha3_ * (delta_trans * delta_trans) + alpha4_ * (delta_rot * delta_rot));
   double rot_hat_stddev = std::sqrt(alpha1_ * (delta_rot * delta_rot) + alpha2_ * (delta_trans * delta_trans));
+  // ???
   double strafe_hat_stddev = std::sqrt(alpha4_ * (delta_rot * delta_rot) + alpha5_ * (delta_trans * delta_trans));
 
-
   for (int i = 0; i < sample_set_ptr->sample_count; i++) {
-
+    // 方向
     delta_bearing = math::AngleDiff<double>(std::atan2(odom_data.delta(1),
                                                odom_data.delta(0)),
                                     old_pose(2)) + sample_set_ptr->samples_vec[i].pose(2);

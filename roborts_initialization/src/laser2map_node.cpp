@@ -35,11 +35,7 @@ int main(int argc, char **argv)
 	while(ros::ok())
 	{
 		s=ros::Time::now()-t;
-		
-		//l.compareArtificialAndRealSensorData (-4.69, 10, -0.75);
-
-	
-
+			
 			if(s.toSec()>1)
 			{
 

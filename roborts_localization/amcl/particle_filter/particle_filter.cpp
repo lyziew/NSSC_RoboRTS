@@ -493,15 +493,13 @@ void ParticleFilter::InitByModel(PfInitModelFunc init_fn)
   auto set = this->sample_set_ptr_array_[current_set_];
   // Create the kd tree for adaptive sampling
   set->kd_tree_ptr->Clear();
-  set->sample_count = max_samples_;
+  set->sample_count = this->max_samples_;
 
   // Compute the new sample poses
   for (i = 0; i < set->sample_count; i++)
   {
     set->samples_vec[i].weight = 1.0 / this->max_samples_;
-
     set->samples_vec[i].pose = init_fn();
-    ;
     // Add sample to histogram
     set->kd_tree_ptr->InsertPose(set->samples_vec[i].pose, set->samples_vec[i].weight);
   }
@@ -518,17 +516,16 @@ void ParticleFilter::InitByGuassianWithRandomHeading(const Vec3d &mean, const Ma
   int i;
   auto sample_set_ptr = sample_set_ptr_array_[current_set_];
 
-  LOG_INFO << "Init with random heading!";
-
+  LOG_INFO << "Init with random heading!"
+  // Create the kd tree for adaptive sampling
   sample_set_ptr->kd_tree_ptr->Clear();
-
-  sample_set_ptr->sample_count = max_samples_;
+  sample_set_ptr->sample_count = this->max_samples_;
 
   auto pf_gaussian_pdf = ParticleFilterGaussianPdf(mean, cov);
 
   for (i = 0; i < sample_set_ptr->sample_count; i++)
   {
-    sample_set_ptr->samples_vec[i].weight = 1.0 / max_samples_;
+    sample_set_ptr->samples_vec[i].weight = 1.0 / this->max_samples_;;
     sample_set_ptr->samples_vec[i].pose = pf_gaussian_pdf.GenerateSample();
     sample_set_ptr->samples_vec[i].pose[2] = drand48() * 2 * M_PI - M_PI;
     sample_set_ptr->kd_tree_ptr->InsertPose(sample_set_ptr->samples_vec[i].pose,
