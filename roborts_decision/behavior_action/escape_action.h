@@ -17,6 +17,7 @@
 #ifndef ROBORTS_DECISION_ESCAPE_ACTION_H
 #define ROBORTS_DECISION_ESCAPE_ACTION_H
 
+#include "goal_factory.h"
 #include "../behavior_tree/behavior_node.h"
 #include "../executor/chassis_executor.h"
 #include "../executor/gimbal_executor.h"
@@ -42,12 +43,7 @@ class EscapeAction : public ActionNode
 
     virtual BehaviorState Update()
     {
-        // get a goal
-        goal_factory_ptr_->EscapeGoal();
-        // execute the goal
-        chassis_executor_ptr_->Execute();
-        // update state and return
-        return chassis_executor_ptr_->GetActionState();
+        return chassis_executor_ptr_->Update();
     }
 
     virtual void OnTerminate(BehaviorState state)

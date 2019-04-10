@@ -17,18 +17,18 @@
 #ifndef ROBORTS_DECISION_ESCAPE_ACTION_H
 #define ROBORTS_DECISION_ESCAPE_ACTION_H
 
+#include "goal_factory.h"
 #include "../behavior_tree/behavior_node.h"
 #include "../executor/chassis_executor.h"
 #include "../executor/gimbal_executor.h"
-#include "../log.h"
+//#include "../log.h"
 
 namespace roborts_decision
 {
 class PatrolAction : public ActionNode
 {
   public:
-    PatrolAction(const Blackboard::Ptr &blackboard_ptr, GoalFactory::GoalFactoryPtr &goal_factory_ptr, ChassisExecutor::Ptr &chassis_executor_ptr) :
-        ActionNode::ActionNode("patrol_action", blackboard_ptr), goal_factory_ptr_(goal_factory_ptr), chassis_executor_ptr_(chassis_executor_ptr)
+    PatrolAction(const Blackboard::Ptr &blackboard_ptr, GoalFactory::GoalFactoryPtr &goal_factory_ptr, ChassisExecutor::Ptr &chassis_executor_ptr) : ActionNode::ActionNode("patrol_action", blackboard_ptr), goal_factory_ptr_(goal_factory_ptr), chassis_executor_ptr_(chassis_executor_ptr)
     {
     }
 
@@ -37,17 +37,23 @@ class PatrolAction : public ActionNode
   private:
     virtual void OnInitialize()
     {
-        LOG_INFO << name_ << " " << __FUNCTION__;
+        //LOG_INFO << name_ << " " << __FUNCTION__;
     };
 
     virtual BehaviorState Update()
     {
-        // get a goal
-        goal_factory_ptr_->EscapeGoal();
-        // execute the goal
-        chassis_executor_ptr_->Execute();
+        BehaviorState action_state_ = chassis_executor_ptr_->Update();
+
+        if (!goal_factory_ptr_->IsPatrolGoalsEmpty() && action_state_ != BehaviorState::RUNNING)
+        {
+            // get a goal
+            geometry_msgs::PoseStamped goal = goal_factory_ptr_->GetPatrolGoal();
+            // execute the goal
+            chassis_executor_ptr_->Execute(goal);
+        }
+
         // update state and return
-        return chassis_executor_ptr_->GetActionState();
+        return chassis_executor_ptr_->Update();
     }
 
     virtual void OnTerminate(BehaviorState state)
@@ -56,22 +62,22 @@ class PatrolAction : public ActionNode
         {
         case BehaviorState::IDLE:
             chassis_executor_ptr_->Cancel();
-            LOG_INFO << name_ << " " << __FUNCTION__ << " IDLE!";
+            //LOG_INFO << name_ << " " << __FUNCTION__ << " IDLE!";
             break;
         case BehaviorState::SUCCESS:
-            LOG_INFO << name_ << " " << __FUNCTION__ << " SUCCESS!";
+            //LOG_INFO << name_ << " " << __FUNCTION__ << " SUCCESS!";
             break;
         case BehaviorState::FAILURE:
-            LOG_INFO << name_ << " " << __FUNCTION__ << " FAILURE!";
+            //LOG_INFO << name_ << " " << __FUNCTION__ << " FAILURE!";
             break;
         default:
-            LOG_INFO << name_ << " " << __FUNCTION__ << " ERROR!";
+            //LOG_INFO << name_ << " " << __FUNCTION__ << " ERROR!";
             return;
         }
     }
 
     GoalFactory::GoalFactoryPtr goal_factory_ptr_;
     ChassisExecutor::Ptr chassis_executor_ptr_;
-}; // class EscapeAction
+}; // class PatrolAction
 } // namespace roborts_decision
 #endif //ROBORTS_DECISION_ESCAPE_ACTION_H

@@ -6,20 +6,23 @@
 #include "roborts_msgs/GimbalRate.h"
 
 #include "../behavior_tree/behavior_state.h"
-namespace roborts_decision{
+namespace roborts_decision
+{
 /***
  * @brief Gimbal Executor to execute different abstracted task for gimbal module
  */
-class GimbalExecutor{
-  typedef std::shared_ptr<GimbalExecutor> Ptr; 
- public:
+class GimbalExecutor
+{
+public:
+  typedef std::shared_ptr<GimbalExecutor> Ptr;
   /**
    * @brief Gimbal execution mode for different tasks
    */
-  enum class ExcutionMode{
-    IDLE_MODE,   ///< Default idle mode with no task
-    ANGLE_MODE,  ///< Angle task mode
-    RATE_MODE    ///< Rate task mode
+  enum class ExcutionMode
+  {
+    IDLE_MODE,  ///< Default idle mode with no task
+    ANGLE_MODE, ///< Angle task mode
+    RATE_MODE   ///< Rate task mode
   };
   /**
    * @brief Constructor of GimbalExecutor
@@ -46,7 +49,7 @@ class GimbalExecutor{
    */
   void Cancel();
 
- private:
+private:
   //! execution mode of the executor
   ExcutionMode excution_mode_;
   //! execution state of the executor (same with behavior state)
@@ -59,10 +62,7 @@ class GimbalExecutor{
 
   //! gimbal angle control publisher in ROS
   ros::Publisher cmd_gimbal_angle_pub_;
-
-
 };
-}
-
+} // namespace roborts_decision
 
 #endif //ROBORTS_DECISION_GIMBAL_EXECUTOR_H

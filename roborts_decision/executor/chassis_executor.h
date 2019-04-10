@@ -10,24 +10,29 @@
 
 #include "../behavior_tree/behavior_state.h"
 
-namespace roborts_decision{
+namespace roborts_decision
+{
 /***
  * @brief Chassis Executor to execute different abstracted task for chassis module
  */
-class ChassisExecutor{
-  typedef std::shared_ptr<ChassisExecutor> Ptr; 
+class ChassisExecutor
+{
   typedef actionlib::SimpleActionClient<roborts_msgs::GlobalPlannerAction> GlobalActionClient;
   typedef actionlib::SimpleActionClient<roborts_msgs::LocalPlannerAction> LocalActionClient;
- public:
+
+public:
   /**
    * @brief Chassis execution mode for different tasks
    */
-  enum class ExcutionMode{
+  enum class ExcutionMode
+  {
     IDLE_MODE,            ///< Default idle mode with no task
     GOAL_MODE,            ///< Goal-targeted task mode using global and local planner
     SPEED_MODE,           ///< Velocity task mode
     SPEED_WITH_ACCEL_MODE ///< Velocity with acceleration task mode
   };
+
+  typedef std::shared_ptr<ChassisExecutor> Ptr;
   /**
    * @brief Constructor of ChassisExecutor
    */
@@ -58,12 +63,12 @@ class ChassisExecutor{
    */
   void Cancel();
 
- private:
+private:
   /***
    * @brief Global planner actionlib feedback callback function to send the global planner path to local planner
    * @param global_planner_feedback  Global planner actionlib feedback, which mainly consists of global planner path output
    */
-  void GlobalPlannerFeedbackCallback(const roborts_msgs::GlobalPlannerFeedbackConstPtr& global_planner_feedback);
+  void GlobalPlannerFeedbackCallback(const roborts_msgs::GlobalPlannerFeedbackConstPtr &global_planner_feedback);
   //! execution mode of the executor
   ExcutionMode execution_mode_;
   //! execution state of the executor (same with behavior state)
@@ -87,10 +92,7 @@ class ChassisExecutor{
   ros::Publisher cmd_vel_acc_pub_;
   //! zero twist with acceleration in form of ROS roborts_msgs::TwistAccel
   roborts_msgs::TwistAccel zero_twist_accel_;
-
-
 };
-}
-
+} // namespace roborts_decision
 
 #endif //ROBORTS_DECISION_CHASSIS_EXECUTOR_H

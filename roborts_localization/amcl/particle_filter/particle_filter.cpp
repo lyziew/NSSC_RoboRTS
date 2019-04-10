@@ -516,7 +516,7 @@ void ParticleFilter::InitByGuassianWithRandomHeading(const Vec3d &mean, const Ma
   int i;
   auto sample_set_ptr = sample_set_ptr_array_[current_set_];
 
-  LOG_INFO << "Init with random heading!"
+  LOG_INFO << "Init with random heading!";
   // Create the kd tree for adaptive sampling
   sample_set_ptr->kd_tree_ptr->Clear();
   sample_set_ptr->sample_count = this->max_samples_;
