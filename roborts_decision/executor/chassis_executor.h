@@ -15,7 +15,7 @@ namespace roborts_decision{
  * @brief Chassis Executor to execute different abstracted task for chassis module
  */
 class ChassisExecutor{
-
+  typedef std::shared_ptr<ChassisExecutor> Ptr; 
   typedef actionlib::SimpleActionClient<roborts_msgs::GlobalPlannerAction> GlobalActionClient;
   typedef actionlib::SimpleActionClient<roborts_msgs::LocalPlannerAction> LocalActionClient;
  public:

@@ -11,6 +11,7 @@ namespace roborts_decision{
  * @brief Gimbal Executor to execute different abstracted task for gimbal module
  */
 class GimbalExecutor{
+  typedef std::shared_ptr<GimbalExecutor> Ptr; 
  public:
   /**
    * @brief Gimbal execution mode for different tasks
