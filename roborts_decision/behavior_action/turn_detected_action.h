@@ -28,8 +28,7 @@ namespace roborts_decision
 class TurnDetectedAction : public ActionNode
 {
   public:
-    TurnDetectedAction(const Blackboard::Ptr &blackboard_ptr, GoalFactory::GoalFactoryPtr &goal_factory_ptr, ChassisExecutor::Ptr &chassis_executor_ptr) :
-        ActionNode::ActionNode("turn_detected_action", blackboard_ptr), goal_factory_ptr_(goal_factory_ptr), chassis_executor_ptr_(chassis_executor_ptr)
+    TurnDetectedAction(const Blackboard::Ptr &blackboard_ptr, GoalFactory::GoalFactoryPtr &goal_factory_ptr, ChassisExecutor::Ptr &chassis_executor_ptr) : ActionNode::ActionNode("turn_detected_action", blackboard_ptr), goal_factory_ptr_(goal_factory_ptr), chassis_executor_ptr_(chassis_executor_ptr)
     {
     }
 
@@ -43,6 +42,13 @@ class TurnDetectedAction : public ActionNode
 
     virtual BehaviorState Update()
     {
+        BehaviorState action_state_ = chassis_executor_ptr_->Update();
+        if (action_state_ != BehaviorState::RUNNING)
+        {
+            geometry_msgs::PoseStamped goal = goal_factory_ptr_->GetTurnDetectedGoal();
+            // execute the goal
+            chassis_executor_ptr_->Execute(goal);
+        }
         // update state and return
         return chassis_executor_ptr_->Update();
     }

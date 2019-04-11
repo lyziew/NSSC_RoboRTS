@@ -95,7 +95,7 @@ public:
     return whirl_vel_;
   }
 
-  geometry_msgs::PoseStamped GetSupplyGoal()
+  geometry_msgs::PoseStamped GetSupplierGoal()
   {
     geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
     patrol_count_ = ++patrol_count_ % point_size_;
@@ -104,15 +104,59 @@ public:
 
   geometry_msgs::PoseStamped GetTurnWoundedGoal()
   {
-    geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
-    patrol_count_ = ++patrol_count_ % point_size_;
+    double yaw;
+    switch (blackboard_ptr_->GetArmorAttacked())
+    {
+    case ArmorAttacked::FRONT:
+      yaw = 0;
+      break;
+    case ArmorAttacked::LEFT:
+      yaw = M_PI / 2.;
+      break;
+    case ArmorAttacked::BACK:
+      yaw = M_PI;
+      break;
+    case ArmorAttacked::RIGHT:
+      yaw = -M_PI / 2.;
+      break;
+    default:
+      yaw = 0;
+    }
+
+    geometry_msgs::PoseStamped goal;
+    auto quaternion = tf::createQuaternionMsgFromYaw(yaw);
+    goal.header.frame_id = "base_link";
+    goal.header.stamp = ros::Time::now();
+    goal.pose.orientation = quaternion;
     return goal;
   }
 
   geometry_msgs::PoseStamped GetTurnDetectedGoal()
   {
-    geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
-    patrol_count_ = ++patrol_count_ % point_size_;
+    double yaw;
+    switch (blackboard_ptr_->GetRobotDetected())
+    {
+    case RobotDetected::FRONT:
+      yaw = 0;
+      break;
+    case RobotDetected::LEFT:
+      yaw = M_PI / 2.;
+      break;
+    case RobotDetected::BACK:
+      yaw = M_PI;
+      break;
+    case RobotDetected::RIGHT:
+      yaw = -M_PI / 2.;
+      break;
+    default:
+      yaw = 0;
+    }
+
+    geometry_msgs::PoseStamped goal;
+    auto quaternion = tf::createQuaternionMsgFromYaw(yaw);
+    goal.header.frame_id = "base_link";
+    goal.header.stamp = ros::Time::now();
+    goal.pose.orientation = quaternion;
     return goal;
   }
 
@@ -142,15 +186,6 @@ public:
       patrol_goals_[i].pose.orientation.w = quaternion.w();
     }
 
-    // whirl_vel_.accel.linear.x = 0;
-    // whirl_vel_.accel.linear.y = 0;
-    // whirl_vel_.accel.linear.z = 0;
-    // whirl_vel_.accel.angular.x = 0;
-    // whirl_vel_.accel.angular.y = 0;
-    // whirl_vel_.accel.angular.z = 0;
-    // whirl_vel_.twist.linear.x = 0;
-    // whirl_vel_.twist.linear.y = 0;
-    // whirl_vel_.twist.linear.z = 0;
     whirl_vel_.twist.angular.z = decision_config.whirl_vel().angle_z_vel();
     whirl_vel_.twist.angular.y = decision_config.whirl_vel().angle_y_vel();
     whirl_vel_.twist.angular.x = decision_config.whirl_vel().angle_x_vel();
