@@ -14,14 +14,14 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <http://www.gnu.org/licenses/>.
  ***************************************************************************/
-#ifndef ROBORTS_DECISION_ESCAPE_ACTION_H
-#define ROBORTS_DECISION_ESCAPE_ACTION_H
+#ifndef ROBORTS_DECISION_PATROL_ACTION_H
+#define ROBORTS_DECISION_PATROL_ACTION_H
 
 #include "goal_factory.h"
 #include "../behavior_tree/behavior_node.h"
 #include "../executor/chassis_executor.h"
 #include "../executor/gimbal_executor.h"
-//#include "../log.h"
+#include "../log.h"
 
 namespace roborts_decision
 {
@@ -37,7 +37,7 @@ class PatrolAction : public ActionNode
   private:
     virtual void OnInitialize()
     {
-        //LOG_INFO << name_ << " " << __FUNCTION__;
+        LOG_INFO << name_ << " " << __FUNCTION__;
     };
 
     virtual BehaviorState Update()
@@ -62,16 +62,16 @@ class PatrolAction : public ActionNode
         {
         case BehaviorState::IDLE:
             chassis_executor_ptr_->Cancel();
-            //LOG_INFO << name_ << " " << __FUNCTION__ << " IDLE!";
+            LOG_INFO << name_ << " " << __FUNCTION__ << " IDLE!";
             break;
         case BehaviorState::SUCCESS:
-            //LOG_INFO << name_ << " " << __FUNCTION__ << " SUCCESS!";
+            LOG_INFO << name_ << " " << __FUNCTION__ << " SUCCESS!";
             break;
         case BehaviorState::FAILURE:
-            //LOG_INFO << name_ << " " << __FUNCTION__ << " FAILURE!";
+            LOG_INFO << name_ << " " << __FUNCTION__ << " FAILURE!";
             break;
         default:
-            //LOG_INFO << name_ << " " << __FUNCTION__ << " ERROR!";
+            LOG_INFO << name_ << " " << __FUNCTION__ << " ERROR!";
             return;
         }
     }
@@ -80,4 +80,4 @@ class PatrolAction : public ActionNode
     ChassisExecutor::Ptr chassis_executor_ptr_;
 }; // class PatrolAction
 } // namespace roborts_decision
-#endif //ROBORTS_DECISION_ESCAPE_ACTION_H
+#endif //ROBORTS_DECISION_PATROL_ACTION_H

@@ -23,6 +23,8 @@
 
 #include "behavior_action/goal_factory.h"
 #include "behavior_action/patrol_action.h"
+#include "behavior_action/whirl_action.h"
+#include "behavior_action/wait_action.h"
 
 int main(int argc, char **argv)
 {
@@ -33,7 +35,8 @@ int main(int argc, char **argv)
     auto blackboard_ptr = std::make_shared<roborts_decision::Blackboard>(full_path);
     auto goal_factory_ptr = std::make_shared<roborts_decision::GoalFactory>(blackboard_ptr, full_path);
     auto patrol_action_ptr = std::make_shared<roborts_decision::PatrolAction>(blackboard_ptr, goal_factory_ptr, chassis_executor_ptr);
-    auto behavior_tree_ptr = std::make_shared<roborts_decision::BehaviorTree>(patrol_action_ptr, 25);
+    auto whirl_action_ptr = std::make_shared<roborts_decision::WhirlAction>(blackboard_ptr, goal_factory_ptr, chassis_executor_ptr);
+    auto behavior_tree_ptr = std::make_shared<roborts_decision::BehaviorTree>(whirl_action_ptr, 25);
     behavior_tree_ptr->Run();
     return 0;
 }

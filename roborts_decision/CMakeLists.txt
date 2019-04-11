@@ -69,7 +69,7 @@ target_link_libraries(decision_node
   roborts_costmap
   ${catkin_LIBRARIES}
   ${PROTOBUF_LIBRARIES}
-  #${GLOG_LIBRARY}
+  ${GLOG_LIBRARY}
   )
 add_dependencies(decision_node
   roborts_msgs_generate_messages)

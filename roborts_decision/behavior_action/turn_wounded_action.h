@@ -14,8 +14,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <http://www.gnu.org/licenses/>.
  ***************************************************************************/
-#ifndef ROBORTS_DECISION_ESCAPE_ACTION_H
-#define ROBORTS_DECISION_ESCAPE_ACTION_H
+#ifndef ROBORTS_DECISION_WOUNDED_ACTION_H
+#define ROBORTS_DECISION_WOUNDED_ACTION_H
 
 #include "goal_factory.h"
 #include "../behavior_tree/behavior_node.h"
@@ -25,7 +25,7 @@
 
 namespace roborts_decision
 {
-class WhirlAction : public ActionNode
+class TurnWoundedAction : public ActionNode
 {
   public:
     TurnWoundedAction(const Blackboard::Ptr &blackboard_ptr, GoalFactory::GoalFactoryPtr &goal_factory_ptr, ChassisExecutor::Ptr &chassis_executor_ptr) :
@@ -71,4 +71,4 @@ class WhirlAction : public ActionNode
     ChassisExecutor::Ptr chassis_executor_ptr_;
 }; // class TurnWoundedAction
 } // namespace roborts_decision
-#endif //ROBORTS_DECISION_ESCAPE_ACTION_H
+#endif //ROBORTS_DECISION_WOUNDED_ACTION_H

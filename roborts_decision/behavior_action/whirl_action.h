@@ -14,8 +14,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <http://www.gnu.org/licenses/>.
  ***************************************************************************/
-#ifndef ROBORTS_DECISION_ESCAPE_ACTION_H
-#define ROBORTS_DECISION_ESCAPE_ACTION_H
+#ifndef ROBORTS_DECISION_WHIRL_ACTION_H
+#define ROBORTS_DECISION_WHIRL_ACTION_H
 
 #include "goal_factory.h"
 #include "../behavior_tree/behavior_node.h"
@@ -44,7 +44,9 @@ class WhirlAction : public ActionNode
     virtual BehaviorState Update()
     {
         // update state and return
-        return chassis_executor_ptr_->Update();
+        roborts_msgs::TwistAccel twist_accel = goal_factory_ptr_->GetWhirlGoal();
+        chassis_executor_ptr_->Execute(twist_accel);
+        return BehaviorState::RUNNING;
     }
 
     virtual void OnTerminate(BehaviorState state)
@@ -71,4 +73,4 @@ class WhirlAction : public ActionNode
     ChassisExecutor::Ptr chassis_executor_ptr_;
 }; // class WhirlAction
 } // namespace roborts_decision
-#endif //ROBORTS_DECISION_ESCAPE_ACTION_H
+#endif //ROBORTS_DECISION_WHIRL_ACTION_H

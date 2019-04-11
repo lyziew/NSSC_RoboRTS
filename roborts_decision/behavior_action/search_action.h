@@ -14,8 +14,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <http://www.gnu.org/licenses/>.
  ***************************************************************************/
-#ifndef ROBORTS_DECISION_ESCAPE_ACTION_H
-#define ROBORTS_DECISION_ESCAPE_ACTION_H
+#ifndef ROBORTS_DECISION_SEARCH_ACTION_H
+#define ROBORTS_DECISION_SEARCH_ACTION_H
 
 #include "goal_factory.h"
 #include "../behavior_tree/behavior_node.h"
@@ -71,4 +71,4 @@ class SearchAction : public ActionNode
     ChassisExecutor::Ptr chassis_executor_ptr_;
 }; // class SearchAction
 } // namespace roborts_decision
-#endif //ROBORTS_DECISION_ESCAPE_ACTION_H
+#endif //ROBORTS_DECISION_SEARCH_ACTION_H

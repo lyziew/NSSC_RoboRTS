@@ -14,8 +14,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <http://www.gnu.org/licenses/>.
  ***************************************************************************/
-#ifndef ROBORTS_DECISION_ESCAPE_ACTION_H
-#define ROBORTS_DECISION_ESCAPE_ACTION_H
+#ifndef ROBORTS_DECISION_WAIT_ACTION_H
+#define ROBORTS_DECISION_WAIT_ACTION_H
 
 #include "goal_factory.h"
 #include "../behavior_tree/behavior_node.h"
@@ -28,8 +28,11 @@ namespace roborts_decision
 class WaitAction : public ActionNode
 {
   public:
-    WaitAction(const Blackboard::Ptr &blackboard_ptr, GoalFactory::GoalFactoryPtr &goal_factory_ptr, ChassisExecutor::Ptr &chassis_executor_ptr) :
-        ActionNode::ActionNode("wait_action", blackboard_ptr), goal_factory_ptr_(goal_factory_ptr), chassis_executor_ptr_(chassis_executor_ptr)
+    WaitAction(const Blackboard::Ptr &blackboard_ptr, GoalFactory::GoalFactoryPtr &goal_factory_ptr, ChassisExecutor::Ptr &chassis_executor_ptr, GimbalExecutor::Ptr &gimbal_executor_ptr) :
+        ActionNode::ActionNode("wait_action", blackboard_ptr), 
+        goal_factory_ptr_(goal_factory_ptr),
+        chassis_executor_ptr_(chassis_executor_ptr),
+        gimbal_executor_ptr_(gimbal_executor_ptr)
     {
     }
 
@@ -42,9 +45,18 @@ class WaitAction : public ActionNode
     };
 
     virtual BehaviorState Update()
-    {
+    {   // 是否必要回到初始位置
+        geometry_msgs::PoseStamped goal = goal_factory_ptr_->GetBootUpGoal();
+        chassis_executor_ptr_->Execute(goal);
         // update state and return
-        return chassis_executor_ptr_->Update();
+        BehaviorState action_state_ = chassis_executor_ptr_->Update();
+        if (action_state_ == BehaviorState::SUCCESS)
+        {
+            chassis_executor_ptr_->Cancel();
+            gimbal_executor_ptr_->Cancel();
+
+        }
+        return BehaviorState::RUNNING;
     }
 
     virtual void OnTerminate(BehaviorState state)
@@ -69,6 +81,7 @@ class WaitAction : public ActionNode
 
     GoalFactory::GoalFactoryPtr goal_factory_ptr_;
     ChassisExecutor::Ptr chassis_executor_ptr_;
+    GimbalExecutor::Ptr &gimbal_executor_ptr_;
 }; // class WaitAction
 } // namespace roborts_decision
-#endif //ROBORTS_DECISION_ESCAPE_ACTION_H
+#endif //ROBORTS_DECISION_WAIT_ACTION_H

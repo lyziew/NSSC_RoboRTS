@@ -13,6 +13,7 @@ void GimbalExecutor::Execute(const roborts_msgs::GimbalAngle &gimbal_angle){
   cmd_gimbal_angle_pub_.publish(gimbal_angle);
 }
 
+//目前不可用
 void GimbalExecutor::Execute(const roborts_msgs::GimbalRate &gimbal_rate){
   excution_mode_ = ExcutionMode::RATE_MODE;
   cmd_gimbal_rate_pub_.publish(gimbal_rate);

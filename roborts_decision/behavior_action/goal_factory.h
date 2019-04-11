@@ -27,7 +27,6 @@
 #include "../proto/decision.pb.h"
 #include "../blackboard/blackboard.h"
 
-
 namespace roborts_decision
 {
 
@@ -54,6 +53,13 @@ public:
   bool IsPatrolGoalsEmpty()
   {
     return patrol_goals_.empty();
+  }
+
+  geometry_msgs::PoseStamped GetBootUpGoal()
+  {
+    geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
+    patrol_count_ = ++patrol_count_ % point_size_;
+    return goal;
   }
 
   geometry_msgs::PoseStamped GetPatrolGoal()
@@ -84,6 +90,11 @@ public:
     return goal;
   }
 
+  roborts_msgs::TwistAccel GetWhirlGoal()
+  {
+    return whirl_vel_;
+  }
+
   geometry_msgs::PoseStamped GetSupplyGoal()
   {
     geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
@@ -103,11 +114,6 @@ public:
     geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
     patrol_count_ = ++patrol_count_ % point_size_;
     return goal;
-  }
-
-  void UpdateRobotPose()
-  {
-
   }
 
   void LoadParam(const std::string &proto_file_path)
@@ -135,6 +141,19 @@ public:
       patrol_goals_[i].pose.orientation.z = quaternion.z();
       patrol_goals_[i].pose.orientation.w = quaternion.w();
     }
+
+    // whirl_vel_.accel.linear.x = 0;
+    // whirl_vel_.accel.linear.y = 0;
+    // whirl_vel_.accel.linear.z = 0;
+    // whirl_vel_.accel.angular.x = 0;
+    // whirl_vel_.accel.angular.y = 0;
+    // whirl_vel_.accel.angular.z = 0;
+    // whirl_vel_.twist.linear.x = 0;
+    // whirl_vel_.twist.linear.y = 0;
+    // whirl_vel_.twist.linear.z = 0;
+    whirl_vel_.twist.angular.z = decision_config.whirl_vel().angle_z_vel();
+    whirl_vel_.twist.angular.y = decision_config.whirl_vel().angle_y_vel();
+    whirl_vel_.twist.angular.x = decision_config.whirl_vel().angle_x_vel();
   }
 
 protected:
@@ -144,6 +163,8 @@ protected:
   std::vector<geometry_msgs::PoseStamped> patrol_goals_;
   unsigned int patrol_count_;
   unsigned int point_size_;
+
+  roborts_msgs::TwistAccel whirl_vel_;
 };
 
 } // namespace roborts_decision
