@@ -54,10 +54,26 @@
 #include "../proto/decision.pb.h"
 #include "costmap/costmap_interface.h"
 
-#include ""
-
 namespace roborts_decision
 {
+
+enum class ArmorAttacked
+{
+  NONE = 0,
+  FRONT = 1,
+  LEFT = 2,
+  BACK = 4,
+  RIGHT = 8
+};
+
+enum class RobotDetected
+{
+  NONE = 0,
+  FRONT = 1,
+  LEFT = 2,
+  BACK = 4,
+  RIGHT = 8
+};
 
 class Blackboard
 {
@@ -116,55 +132,120 @@ public:
   // 反馈比赛状态数据
   void GameStatusCallback(const roborts_msgs::GameStatusConstPtr &game_status_msg)
   {
+    game_status_.game_status = game_status_msg -> game_status;
+    game_status_.remaining_time = game_status_msg -> remaining_time;
+    //game_status_.PRE_MATCH = game_status_msg -> PRE_MATCH;
+    //game_status_.SETUP = game_status_msg -> SETUP;
+    //game_status_.INIT = game_status_msg -> INIT;
+    //game_status_.FIVE_SEC_CD = game_status_msg -> FIVE_SEC_CD;
+    //game_status_.ROUND = game_status_msg -> ROUND;
+    //game_status_.CALCULATION = game_status_msg -> CALCULATION;
+  }
 
+  // 反馈比赛结果数据
+  void GameResultCallback(const roborts_msgs::GameResultConstPtr &game_result_msg)
+  {
+    game_result_.result = game_status_msg -> result;
+    //game_result_.DRAW = game_status_msg -> DRAW;
+    //game_result_.RED_WIN = game_status_msg -> RED_WIN;
+    //game_result_.BLUE_WIN = game_status_msg -> BLUE_WIN;
   }
 
   // 反馈场上双方存活机器人状态数据
-  void GameSurvivorCallback(const roborts_msgs::GameSurvivorConstPtr & game_survivor_msg)
+  void GameSurvivorCallback(const roborts_msgs::GameSurvivorConstPtr &game_survivor_msg)
   {
-
+    game_survival_.red3 = game_survivor_msg -> red3;
+    game_survival_.red4 = game_survivor_msg -> red4;
+    game_survival_.blue3 = game_survivor_msg -> blue3;
+    game_survival_.blue4 = game_survivor_msg -> blue4;
   }
 
   // 反馈buff区状态数据, 获取buff前应该先判断buff状态
-  void BonusStatusCallback(const roborts_msgs::BonusStatusConstPtr & bonus_status_msg)
+  void BonusStatusCallback(const roborts_msgs::BonusStatusConstPtr &bonus_status_msg)
   {
-
+    //bonus_status_.UNOCCUPIED = bonus_status_msg -> UNOCCUPIED
+    //bonus_status_.BEING_OCCUPIED = bonus_status_msg -> BEING_OCCUPIED
+    //bonus_status_.OCCUPIED = bonus_status_msg -> OCCUPIED
+    bonus_status_.red_bonus = bonus_status_msg -> red_bonus
+    bonus_status_.blue_bonus = bonus_status_msg -> blue_bonus
   }
 
   // 反馈补给站状态, 补给前应该先判断补给站状态
   void SupplierStatusCallback(const roborts_msgs::SupplierStatusConstPtr &supplier_status_msg)
   {
-
+    //supplier_status_.CLOSE = supplier_status_msg -> CLOSE;
+    //supplier_status_.PREPARING = supplier_status_msg -> PREPARING;
+    //supplier_status_.SUPPLYING = supplier_status_msg -> SUPPLYING;
+    supplier_status_.status = supplier_status_msg -> status;
   }
 
   // 反馈机器人状态
   void RobotStatusCallback(const roborts_msgs::RobotStatusConstPtr &robot_status_msg)
   {
-
+    robot_status_.id = robot_status_msg -> id;
+    robot_status_.level = robot_status_msg -> level;
+    robot_status_.remain_hp = robot_status_msg -> remain_hp;
+    robot_status_.max_hp = robot_status_msg -> max_hp;
+    robot_status_.heat_cooling_limit = robot_status_msg -> heat_cooling_limit;
+    robot_status_.heat_cooling_rate = robot_status_msg -> heat_cooling_rate;
+    robot_status_.gimbal_output = robot_status_msg -> gimbal_output;
+    robot_status_.chassis_output = robot_status_msg -> chassis_output;
+    robot_status_.shooter_output = robot_status_msg -> shooter_output;
   }
 
   //反馈射击热量信息
   void RobotHeatCallback(const roborts_msgs::RobotHeatConstPtr &robot_heat_msg)
   {
-
+    robot_heat_.chassis_volt = robot_heat_msg -> chassis_volt;
+    robot_heat_.chassis_current = robot_heat_msg -> chassis_current;
+    robot_heat_.chassis_power = robot_heat_msg -> chassis_power;
+    robot_heat_.chassis_power_buffer = robot_heat_msg -> chassis_power_buffer;
+    robot_heat_.shooter_heat = robot_heat_msg -> shooter_heat;
   }
 
   // 反馈获取buff信息
   void RobotBonusCallback(const roborts_msgs::RobotBonusConstPtr &robot_bonus_msg)
   {
-
+    robot_bonus_.bonus = robot_bonus_msg -> bonus;
+    //bonus_aviliable_ = false;
   }
 
   // 反馈机器人遭受伤害信息
   void RobotDamageCallback(const roborts_msgs::RobotDamageConstPtr &robot_damage_msg)
   {
+    robot_damage_.damage_type = robot_damage_msg -> damage_type;
+    robot_damage_.damage_source = robot_damage_msg -> damage_source;
 
+    if (int(robot_damage_.damage_type) != 0)
+    {
+      damage_armor_forward_count = 0;
+      damage_armor_backward_count = 0
+      damage_armor_left_count = 0;
+      damage_armor_right_count = 0;
+    }
+
+    switch (int(robot_damage_.damage_source))
+    {
+    case 0:
+      ++damage_armor_forward_count;
+      break;
+    case 1:
+      ++damage_armor_backward_count;
+      break;
+    case 2:
+      ++damage_armor_left_count;
+      break;
+    case 3:
+      ++damage_armor_right_count;
+      break;
+    }
   }
 
   //  反馈机器人射击信息
   void RobotShootCallback(const roborts_msgs::RobotShootConstPtr &robot_shoot_msg)
   {
-
+    robot_shoot_.frequency = robot_shoot_msg -> frequency;
+    robot_shoot_.speed = robot_shoot_msg -> speed;
   }
 
   // Enemy
@@ -294,6 +375,29 @@ public:
     return charmap_;
   }
 
+  ArmorAttacked GetArmorAttacked() const
+  {
+    if (ros::Time::now() - last_armor_attacked__time_ > ros::Duration(0.1))
+    {
+      return ArmorAttacked::NONE;
+    }
+    else
+    {
+      return armor_attacked_;
+    }
+  }
+  RobotDetected GetRobotDetected() const
+  {
+    if (ros::Time::now() - last_robot_detected_time_ > ros::Duration(0.2))
+    {
+      return RobotDetected::NONE;
+    }
+    else
+    {
+      return robot_detected_;
+    }
+  }
+
 private:
   void UpdateRobotPose()
   {
@@ -350,6 +454,36 @@ private:
   ros::Subscriber robot_bonus_sub_;
   ros::Subscriber robot_damage_sub_;
   ros::Subscriber robot_shoot_sub_;
+
+  // 保存最近10次受伤的信息,用于判断受伤的装甲板
+  std::queue<roborts_msgs::RobotDamageConstPtr> robot_wounded_msg_queue_;
+  // 用于返回攻击的装甲板的的位置
+  ArmorAttacked armor_attacked_;
+  ros::Time last_armor_attacked__time_;
+
+  //保存最近10次发现敌人的信息,用于判断敌人最可能的位置
+  // std::queue<roborts_msgs::> robot_detected_msg_queue_;
+  RobotDetected robot_detected_;
+  ros::Time last_robot_detected_time_;
+
+  // BounsAviliable
+  bool bouns_aviliable_;
+  
+  roborts_msgs::GameStatus game_status_;
+  roborts_msgs::GameResult game_result_;
+  roborts_msgs::GameSurvivor game_survival_;
+  roborts_msgs::BonusStatus bonus_status_;
+  roborts_msgs::SupplierStatus supplier_status_;
+  roborts_msgs::RobotStatus robot_status_;
+  roborts_msgs::RobotHeat robot_heat_;
+  roborts_msgs::RobotBonus robot_bonus_;
+  roborts_msgs::RobotDamage robot_damage_;
+  roborts_msgs::RobotShoot robot_shoot_;
+
+  int damage_armor_forward_count = 0;
+  int damage_armor_backward_count = 0;
+  int damage_armor_left_count = 0;
+  int damage_armor_right_count = 0;
 };
 } //namespace roborts_decision
 #endif //ROBORTS_DECISION_BLACKBOARD_H
