@@ -95,10 +95,6 @@ public:
 
     costmap_2d_ = costmap_ptr_->GetLayeredCostmap()->GetCostMap();
 
-    // Enemy fake pose
-    ros::NodeHandle rviz_nh("/move_base_simple");
-    enemy_sub_ = rviz_nh.subscribe<geometry_msgs::PoseStamped>("goal", 1, &Blackboard::GoalCallback, this);
-
     roborts_decision::DecisionConfig decision_config;
     roborts_common::ReadProtoFromTextFile(proto_file_path, &decision_config);
 
@@ -125,6 +121,9 @@ public:
       robot_damage_sub_ = referee_nh_.subscribe<roborts_msgs::RobotDamage>("robot_damage", 30, &Blackboard::RobotDamageCallback, this);
       robot_shoot_sub_ = referee_nh_.subscribe<roborts_msgs::RobotShoot>("robot_shoot", 30, &Blackboard::RobotShootCallback, this);
     }
+
+    ros::NodeHandle nh;
+    robot_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/robot_pose", 2);
   }
 
   ~Blackboard() = default;
@@ -233,30 +232,6 @@ public:
     return enemy_detected_;
   }
 
-  // Goal
-  void GoalCallback(const geometry_msgs::PoseStamped::ConstPtr &goal)
-  {
-    new_goal_ = true;
-    goal_ = *goal;
-  }
-
-  geometry_msgs::PoseStamped GetGoal() const
-  {
-    return goal_;
-  }
-
-  bool IsNewGoal()
-  {
-    if (new_goal_)
-    {
-      new_goal_ = false;
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
   /*---------------------------------- Tools ------------------------------------------*/
 
   double GetDistance(const geometry_msgs::PoseStamped &pose1,
@@ -346,13 +321,6 @@ private:
   //! tf
   std::shared_ptr<tf::TransformListener> tf_ptr_;
 
-  //! Enenmy detection
-  ros::Subscriber enemy_sub_;
-
-  //! Goal info
-  geometry_msgs::PoseStamped goal_;
-  bool new_goal_;
-
   //! Enemy info
   actionlib::SimpleActionClient<roborts_msgs::ArmorDetectionAction> armor_detection_actionlib_client_;
   roborts_msgs::ArmorDetectionGoal armor_detection_goal_;
@@ -380,7 +348,10 @@ private:
   ros::Subscriber robot_bonus_sub_;
   ros::Subscriber robot_damage_sub_;
   ros::Subscriber robot_shoot_sub_;
-
+  //! robot self info
+  ros::Publisher robot_pose_pub_;
+  ros::Publisher enemy_pose_pub_;
+  ros::Publisher robot_status_pub_;
   // 保存最近10次受伤的信息,用于判断受伤的装甲板
   std::queue<roborts_msgs::RobotDamageConstPtr> robot_wounded_msg_queue_;
   // 用于返回攻击的装甲板的的位置
