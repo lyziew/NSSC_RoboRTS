@@ -25,6 +25,8 @@
 #include "behavior_action/patrol_action.h"
 #include "behavior_action/whirl_action.h"
 #include "behavior_action/wait_action.h"
+#include "behavior_action/turn_detected_action.h"
+#include "behavior_action/turn_wounded_action.h"
 
 int main(int argc, char **argv)
 {

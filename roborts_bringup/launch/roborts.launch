@@ -22,6 +22,14 @@
       <param name="frame_id" type="string" value="base_laser_link"/>
       <param name="inverted" type="bool" value="false"/>
       <param name="angle_compensate" type="bool" value="true"/>
+      <remap from="scan" to="base_scan" />
+  </node>
+
+  <!-- Run the laser filter node -->
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" output="screen" name="laser_filter">
+      <remap from="scan" to="base_scan" />
+      <remap from="scan_filtered" to="scan" />
+      <rosparam command="load" file="$(find roborts_bringup)/launch/filter.yaml" />
   </node>
 
   <!-- Run the localization node -->
