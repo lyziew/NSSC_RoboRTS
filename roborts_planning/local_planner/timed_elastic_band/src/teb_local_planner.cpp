@@ -461,7 +461,6 @@ void TebLocalPlanner::UpdateObstacleWithCostmap(Eigen::Vector2d local_goal) {
       }
     } // for y cell size
   }  // for x cell size
-
 }
 
 void TebLocalPlanner::UpdateViaPointsContainer() {

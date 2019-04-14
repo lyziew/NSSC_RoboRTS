@@ -144,10 +144,7 @@ public:
   // 反馈比赛结果数据
   void GameResultCallback(const roborts_msgs::GameResultConstPtr &game_result_msg)
   {
-    game_result_.result = game_status_msg -> result;
-    //game_result_.DRAW = game_status_msg -> DRAW;
-    //game_result_.RED_WIN = game_status_msg -> RED_WIN;
-    //game_result_.BLUE_WIN = game_status_msg -> BLUE_WIN;
+    game_result_.result = game_result_msg -> result;
   }
 
   // 反馈场上双方存活机器人状态数据
@@ -165,8 +162,8 @@ public:
     //bonus_status_.UNOCCUPIED = bonus_status_msg -> UNOCCUPIED
     //bonus_status_.BEING_OCCUPIED = bonus_status_msg -> BEING_OCCUPIED
     //bonus_status_.OCCUPIED = bonus_status_msg -> OCCUPIED
-    bonus_status_.red_bonus = bonus_status_msg -> red_bonus
-    bonus_status_.blue_bonus = bonus_status_msg -> blue_bonus
+    bonus_status_.red_bonus = bonus_status_msg -> red_bonus;
+    bonus_status_.blue_bonus = bonus_status_msg -> blue_bonus;
   }
 
   // 反馈补给站状态, 补给前应该先判断补给站状态
@@ -218,7 +215,7 @@ public:
     if (int(robot_damage_.damage_type) != 0)
     {
       damage_armor_forward_count = 0;
-      damage_armor_backward_count = 0
+      damage_armor_backward_count = 0;
       damage_armor_left_count = 0;
       damage_armor_right_count = 0;
     }

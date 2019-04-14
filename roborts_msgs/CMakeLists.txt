@@ -25,6 +25,7 @@ add_message_files(
     GimbalAngle.msg
     GimbalRate.msg
     ObstacleMsg.msg
+    ObstacleArrayMsg.msg
     ShootInfo.msg
     ShootState.msg
 )
