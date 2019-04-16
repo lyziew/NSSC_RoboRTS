@@ -45,8 +45,7 @@ public:
 
   geometry_msgs::PoseStamped GetEscapeGoal()
   {
-    geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
-    patrol_count_ = ++patrol_count_ % point_size_;
+    geometry_msgs::PoseStamped goal;
     return goal;
   }
 
@@ -57,8 +56,7 @@ public:
 
   geometry_msgs::PoseStamped GetBootUpGoal()
   {
-    geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
-    patrol_count_ = ++patrol_count_ % point_size_;
+    geometry_msgs::PoseStamped goal;
     return goal;
   }
 
@@ -71,22 +69,19 @@ public:
 
   geometry_msgs::PoseStamped GetChaseGoal()
   {
-    geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
-    patrol_count_ = ++patrol_count_ % point_size_;
+    geometry_msgs::PoseStamped goal;
     return goal;
   }
 
   geometry_msgs::PoseStamped GetSearchGoal()
   {
-    geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
-    patrol_count_ = ++patrol_count_ % point_size_;
+    geometry_msgs::PoseStamped goal;
     return goal;
   }
 
   geometry_msgs::PoseStamped GetBuffGoal()
   {
-    geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
-    patrol_count_ = ++patrol_count_ % point_size_;
+    geometry_msgs::PoseStamped goal;
     return goal;
   }
 
@@ -97,8 +92,7 @@ public:
 
   geometry_msgs::PoseStamped GetSupplierGoal()
   {
-    geometry_msgs::PoseStamped goal = patrol_goals_[patrol_count_];
-    patrol_count_ = ++patrol_count_ % point_size_;
+    geometry_msgs::PoseStamped goal;
     return goal;
   }
 
