@@ -40,6 +40,7 @@
 
 #include <costmap/costmap_2d.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <map_msgs/OccupancyGridUpdate.h>
 #include <geometry_msgs/PolygonStamped.h>
 #include <visualization_msgs/Marker.h>
 
@@ -72,8 +73,8 @@ public:
       std::string costmap_topic = "/move_base/local_costmap/costmap";
       n_.param("costmap_topic", costmap_topic, costmap_topic);
 
-      // std::string costmap_update_topic = "/move_base/local_costmap/costmap_updates";
-      // n_.param("costmap_update_topic", costmap_update_topic, costmap_update_topic);
+      std::string costmap_update_topic = "/move_base/local_costmap/costmap_updates";
+      n_.param("costmap_update_topic", costmap_update_topic, costmap_update_topic);
 
       std::string obstacles_topic = "costmap_obstacles";
       n_.param("obstacles_topic", obstacles_topic, obstacles_topic);
@@ -82,7 +83,7 @@ public:
       n_.param("polygon_marker_topic", polygon_marker_topic, polygon_marker_topic);
 
       costmap_sub_ = n_.subscribe(costmap_topic, 1, &CostmapStandaloneConversion::costmapCallback, this);
-      //costmap_update_sub_ = n_.subscribe(costmap_update_topic, 1, &CostmapStandaloneConversion::costmapUpdateCallback, this);
+      costmap_update_sub_ = n_.subscribe(costmap_update_topic, 1, &CostmapStandaloneConversion::costmapUpdateCallback, this);
       obstacle_pub_ = n_.advertise<roborts_msgs::ObstacleArrayMsg>(obstacles_topic, 1000);
       marker_pub_ = n_.advertise<visualization_msgs::Marker>(polygon_marker_topic, 10);
 
@@ -139,30 +140,30 @@ public:
       publishAsMarker(frame_id_, *obstacles, marker_pub_);
   }
 
-  // void costmapUpdateCallback(const map_msgs::OccupancyGridUpdateConstPtr& update)
-  // {
-  //   unsigned int di = 0;
-  //   for (unsigned int y = 0; y < update->height ; ++y)
-  //   {
-  //     for (unsigned int x = 0; x < update->width ; ++x)
-  //     {
-  //       map_.SetCost(x, y, update->data[di++] >= occupied_min_value_ ? 255 : 0 );
-  //     }
-  //   }
+  void costmapUpdateCallback(const map_msgs::OccupancyGridUpdateConstPtr& update)
+  {
+    unsigned int di = 0;
+    for (unsigned int y = 0; y < update->height ; ++y)
+    {
+      for (unsigned int x = 0; x < update->width ; ++x)
+      {
+        map_.SetCost(x, y, update->data[di++] >= occupied_min_value_ ? 255 : 0 );
+      }
+    }
 
-  //   // convert
-  //   // TODO(roesmann): currently, the converter updates the complete costmap and not the part which is updated in this callback
-  //   converter_->updateCostmap2D();
-  //   converter_->compute();
-  //   roborts_msgs::ObstacleArrayConstMsgPtr obstacles = converter_->getObstacles();
+    // convert
+    // TODO(roesmann): currently, the converter updates the complete costmap and not the part which is updated in this callback
+    converter_->updateCostmap2D();
+    converter_->compute();
+    roborts_msgs::ObstacleArrayMsgConstPtr obstacles = converter_->getObstacles();
 
-  //   if (!obstacles)
-  //     return;
+    if (!obstacles)
+      return;
 
-  //   obstacle_pub_.publish(obstacles);
+    obstacle_pub_.publish(obstacles);
 
-  //   publishAsMarker(frame_id_, *obstacles, marker_pub_);
-  // }
+    publishAsMarker(frame_id_, *obstacles, marker_pub_);
+  }
 
   void publishAsMarker(const std::string& frame_id, const std::vector<geometry_msgs::PolygonStamped>& polygonStamped, ros::Publisher& marker_pub)
   {
