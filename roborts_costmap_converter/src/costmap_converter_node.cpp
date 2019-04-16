@@ -38,7 +38,7 @@
 
 #include <ros/ros.h>
 
-#include <costmap_2d/costmap_2d.h>
+#include <costmap/costmap_2d.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/PolygonStamped.h>
 #include <visualization_msgs/Marker.h>

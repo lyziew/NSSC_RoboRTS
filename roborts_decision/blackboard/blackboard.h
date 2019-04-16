@@ -141,12 +141,6 @@ public:
     //game_status_.CALCULATION = game_status_msg -> CALCULATION;
   }
 
-  // 反馈比赛结果数据
-  void GameResultCallback(const roborts_msgs::GameResultConstPtr &game_result_msg)
-  {
-    game_result_.result = game_result_msg -> result;
-  }
-
   // 反馈场上双方存活机器人状态数据
   void GameSurvivorCallback(const roborts_msgs::GameSurvivorConstPtr &game_survivor_msg)
   {
@@ -440,7 +434,7 @@ private:
   bool bouns_aviliable_;
   
   roborts_msgs::GameStatus game_status_;
-  roborts_msgs::GameResult game_result_;
+
   roborts_msgs::GameSurvivor game_survival_;
   roborts_msgs::BonusStatus bonus_status_;
   roborts_msgs::SupplierStatus supplier_status_;
