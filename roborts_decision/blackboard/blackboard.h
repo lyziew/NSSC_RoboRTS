@@ -57,6 +57,38 @@
 namespace roborts_decision
 {
 
+enum class GameStatus
+{
+  PRE_MATCH = 0,
+  SETUP = 1,
+  INIT = 2,
+  FIVE_SEC_CD = 3,
+  ROUND = 4,
+  CALCULATION = 5
+};
+
+enum class BonusStatus
+{
+  UNOCCUPIED = 0,
+  BEING_OCCUPIED= 1,
+  OCCUPIED = 2
+};
+
+enum class SupplierStatus
+{
+  CLOSE = 0,
+  PREPARING = 1,
+  SUPPLYING = 2
+};
+
+enum class DamageType
+{
+  ARMOR = 0,
+  OFFLINE = 1,
+  EXCEED_HEAT = 2,
+  EXCEED_POWER = 3
+};
+  
 enum class ArmorAttacked
 {
   NONE = 0,
@@ -81,7 +113,9 @@ public:
   typedef std::shared_ptr<Blackboard> Ptr;
   typedef roborts_costmap::CostmapInterface CostMap;
   typedef roborts_costmap::Costmap2D CostMap2D;
-  explicit Blackboard(const std::string &proto_file_path) : enemy_detected_(false),
+  explicit Blackboard(const std::string &proto_file_path) : game_status_(GameStatus::PRE_MATCH),
+                                                            remain_hp_(2000),
+                                                            enemy_detected_(false),
                                                             armor_detection_actionlib_client_("armor_detection_node_action", true)
   {
 
@@ -131,111 +165,98 @@ public:
   // 反馈比赛状态数据
   void GameStatusCallback(const roborts_msgs::GameStatusConstPtr &game_status_msg)
   {
-    game_status_.game_status = game_status_msg -> game_status;
-    game_status_.remaining_time = game_status_msg -> remaining_time;
-    //game_status_.PRE_MATCH = game_status_msg -> PRE_MATCH;
-    //game_status_.SETUP = game_status_msg -> SETUP;
-    //game_status_.INIT = game_status_msg -> INIT;
-    //game_status_.FIVE_SEC_CD = game_status_msg -> FIVE_SEC_CD;
-    //game_status_.ROUND = game_status_msg -> ROUND;
-    //game_status_.CALCULATION = game_status_msg -> CALCULATION;
-  }
-
-  // 反馈比赛结果数据
-  void GameResultCallback(const roborts_msgs::GameResultConstPtr &game_result_msg)
-  {
-    game_result_.result = game_status_msg -> result;
-    //game_result_.DRAW = game_status_msg -> DRAW;
-    //game_result_.RED_WIN = game_status_msg -> RED_WIN;
-    //game_result_.BLUE_WIN = game_status_msg -> BLUE_WIN;
+    game_status_ = game_status_msg -> game_status;
+    remaining_time_ = game_status_msg -> remaining_time;
   }
 
   // 反馈场上双方存活机器人状态数据
   void GameSurvivorCallback(const roborts_msgs::GameSurvivorConstPtr &game_survivor_msg)
   {
-    game_survival_.red3 = game_survivor_msg -> red3;
-    game_survival_.red4 = game_survivor_msg -> red4;
-    game_survival_.blue3 = game_survivor_msg -> blue3;
-    game_survival_.blue4 = game_survivor_msg -> blue4;
+    red3_ = game_survivor_msg -> red3;
+    red4_ = game_survivor_msg -> red4;
+    blue3_ = game_survivor_msg -> blue3;
+    blue4_ = game_survivor_msg -> blue4;
+    robot_survivor_[0] = red3
+    robot_survivor_[1] = red4
+    robot_survivor_[2] = blue3
+    robot_survivor_[3] = blue4
   }
 
   // 反馈buff区状态数据, 获取buff前应该先判断buff状态
   void BonusStatusCallback(const roborts_msgs::BonusStatusConstPtr &bonus_status_msg)
   {
-    //bonus_status_.UNOCCUPIED = bonus_status_msg -> UNOCCUPIED
-    //bonus_status_.BEING_OCCUPIED = bonus_status_msg -> BEING_OCCUPIED
-    //bonus_status_.OCCUPIED = bonus_status_msg -> OCCUPIED
-    bonus_status_.red_bonus = bonus_status_msg -> red_bonus
-    bonus_status_.blue_bonus = bonus_status_msg -> blue_bonus
+    red_bonus_ = bonus_status_msg -> red_bonus;
+    blue_bonus_ = bonus_status_msg -> blue_bonus;
   }
 
   // 反馈补给站状态, 补给前应该先判断补给站状态
   void SupplierStatusCallback(const roborts_msgs::SupplierStatusConstPtr &supplier_status_msg)
   {
-    //supplier_status_.CLOSE = supplier_status_msg -> CLOSE;
-    //supplier_status_.PREPARING = supplier_status_msg -> PREPARING;
-    //supplier_status_.SUPPLYING = supplier_status_msg -> SUPPLYING;
-    supplier_status_.status = supplier_status_msg -> status;
+    supplier_status_ = supplier_status_msg -> status;
   }
 
   // 反馈机器人状态
   void RobotStatusCallback(const roborts_msgs::RobotStatusConstPtr &robot_status_msg)
   {
-    robot_status_.id = robot_status_msg -> id;
-    robot_status_.level = robot_status_msg -> level;
-    robot_status_.remain_hp = robot_status_msg -> remain_hp;
-    robot_status_.max_hp = robot_status_msg -> max_hp;
-    robot_status_.heat_cooling_limit = robot_status_msg -> heat_cooling_limit;
-    robot_status_.heat_cooling_rate = robot_status_msg -> heat_cooling_rate;
-    robot_status_.gimbal_output = robot_status_msg -> gimbal_output;
-    robot_status_.chassis_output = robot_status_msg -> chassis_output;
-    robot_status_.shooter_output = robot_status_msg -> shooter_output;
+    robot_id_ = robot_status_msg -> id;
+
+    switch (robot_id_)
+    {
+      case 3:
+        robot_color_ = 'r';
+        initial_has_bullet_ = true;
+        break;
+      case 4:
+        robot_color_ = 'r';
+        break;
+      case 13:
+        robot_color_ = 'b';
+        initial_has_bullet_ = true;
+        break;
+      case 14:
+        robot_color_ = 'b';
+        break;
+    }
+    remain_hp_ = robot_status_msg -> remain_hp;
+    max_hp_ = robot_status_msg -> max_hp;
+    heat_cooling_limit_ = robot_status_msg -> heat_cooling_limit;
+    heat_cooling_rate_ = robot_status_msg -> heat_cooling_rate;
   }
 
   //反馈射击热量信息
   void RobotHeatCallback(const roborts_msgs::RobotHeatConstPtr &robot_heat_msg)
   {
-    robot_heat_.chassis_volt = robot_heat_msg -> chassis_volt;
-    robot_heat_.chassis_current = robot_heat_msg -> chassis_current;
-    robot_heat_.chassis_power = robot_heat_msg -> chassis_power;
-    robot_heat_.chassis_power_buffer = robot_heat_msg -> chassis_power_buffer;
-    robot_heat_.shooter_heat = robot_heat_msg -> shooter_heat;
+    shooter_heat_ = robot_heat_msg -> shooter_heat;
   }
 
   // 反馈获取buff信息
   void RobotBonusCallback(const roborts_msgs::RobotBonusConstPtr &robot_bonus_msg)
   {
-    robot_bonus_.bonus = robot_bonus_msg -> bonus;
+    robot_bonus_ = robot_bonus_msg -> bonus;
     //bonus_aviliable_ = false;
   }
 
   // 反馈机器人遭受伤害信息
   void RobotDamageCallback(const roborts_msgs::RobotDamageConstPtr &robot_damage_msg)
   {
-    robot_damage_.damage_type = robot_damage_msg -> damage_type;
-    robot_damage_.damage_source = robot_damage_msg -> damage_source;
+    robot_damage_type_ = robot_damage_msg -> damage_type;
 
-    if (int(robot_damage_.damage_type) != 0)
-    {
-      damage_armor_forward_count = 0;
-      damage_armor_backward_count = 0
-      damage_armor_left_count = 0;
-      damage_armor_right_count = 0;
-    }
-
-    switch (int(robot_damage_.damage_source))
+    switch (robot_damage_msg -> damage_source)
     {
     case 0:
-      ++damage_armor_forward_count;
+      robot_damage_source_ = ArmorAttacked::FRONT;
       break;
     case 1:
-      ++damage_armor_backward_count;
+      robot_damage_source_ = ArmorAttacked::BACK;
       break;
     case 2:
-      ++damage_armor_left_count;
+      robot_damage_source_ = ArmorAttacked::LEFT;
       break;
     case 3:
-      ++damage_armor_right_count;
+      robot_damage_source_ = ArmorAttacked::RIGHT;
+      break;
+    default:
+      robot_damage_source_ = ArmorAttacked::NONE;
       break;
     }
   }
@@ -243,8 +264,8 @@ public:
   //  反馈机器人射击信息
   void RobotShootCallback(const roborts_msgs::RobotShootConstPtr &robot_shoot_msg)
   {
-    robot_shoot_.frequency = robot_shoot_msg -> frequency;
-    robot_shoot_.speed = robot_shoot_msg -> speed;
+    shoot_frequency_ = robot_shoot_msg -> frequency;
+    shoot_speed_ = robot_shoot_msg -> speed;
   }
 
   // Enemy
@@ -305,7 +326,85 @@ public:
     ROS_INFO("%s: %d", __FUNCTION__, (int)enemy_detected_);
     return enemy_detected_;
   }
+  
+    GameStatus GetGameStatus() const
+  {
+    LOG_INFO<<__FUNCTION__<<": "<<(int)game_status_;
+    return game_status_;
+  }
 
+  bool* getRobotSurvivor() const
+  {
+    return robot_survivor_;
+  }
+  
+  BonusStatus GetSelfBonusStatus() const
+  {
+    if (robot_color_ == 'r')
+    {
+      self_bonus_status_ = red_bonus_;
+    }
+    else
+    {
+      self_bonus_status_ = blue_bonus_;
+    }
+    return self_bonus_status_;
+  }
+
+  BonusStatus GetEnemyBonusStatus() const
+  {
+    if (robot_color_ == 'r')
+    {
+      enemy_bonus_status_ = blue_bonus_;
+    }
+    else
+    {
+      enemy_bonus_status_ = red_bonus_;
+    }
+    return enemy_bonus_status_
+  }
+
+  SupplierStatus GetSupplierStatus() const
+  {
+    LOG_INFO<<__FUNCTION__<<": "<<(int)supplier_status_;
+    return supplier_status_;
+  }
+
+  unsigned short GetHP() const
+  {
+    return remain_hp_;
+  }
+
+  unsigned short GetRobotHeat() const
+  {
+    return shooter_heat_;
+  }
+  
+  // Goal
+  void GoalCallback(const geometry_msgs::PoseStamped::ConstPtr &goal)
+  {
+    new_goal_ = true;
+    goal_ = *goal;
+  }
+
+  geometry_msgs::PoseStamped GetGoal() const
+  {
+    return goal_;
+  }
+
+  bool IsNewGoal()
+  {
+    if (new_goal_)
+    {
+      new_goal_ = false;
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
   /*---------------------------------- Tools ------------------------------------------*/
 
   double GetDistance(const geometry_msgs::PoseStamped &pose1,
@@ -442,21 +541,40 @@ private:
   // BounsAviliable
   bool bouns_aviliable_;
   
-  roborts_msgs::GameStatus game_status_;
-  roborts_msgs::GameResult game_result_;
-  roborts_msgs::GameSurvivor game_survival_;
-  roborts_msgs::BonusStatus bonus_status_;
-  roborts_msgs::SupplierStatus supplier_status_;
-  roborts_msgs::RobotStatus robot_status_;
-  roborts_msgs::RobotHeat robot_heat_;
-  roborts_msgs::RobotBonus robot_bonus_;
-  roborts_msgs::RobotDamage robot_damage_;
-  roborts_msgs::RobotShoot robot_shoot_;
+  //! Referee system info
+  GameStatus game_status_;
+  unsigned int remaining_time_;
 
-  int damage_armor_forward_count = 0;
-  int damage_armor_backward_count = 0;
-  int damage_armor_left_count = 0;
-  int damage_armor_right_count = 0;
+  bool red3_;
+  bool red4_;
+  bool blue3_;
+  bool blue4_;
+  bool robot_survivor_[4];
+  
+  BonusStatus red_bonus_;
+  BonusStatus blue_bonus_;
+  BonusStatus self_bonus_status_;
+  BonusStatus enemy_bonus_status_;
+  
+  SupplierStatus supplier_status_;
+
+  unsigned char robot_id_;
+  unsigned char robot_color_;
+  bool initial_has_bullet_;
+  unsigned short remain_hp_;
+  unsigned short max_hp_;
+  unsigned short heat_cooling_limit_;
+  unsigned short heat_cooling_rate_;
+
+  unsigned short shooter_heat_;
+
+  bool robot_bonus_;
+  
+  DamageType robot_damage_type_;
+  ArmorAttacked robot_damage_source_;
+
+  unsigned char shoot_frequency_;
+  double shoot_speed_;
 };
 } //namespace roborts_decision
 #endif //ROBORTS_DECISION_BLACKBOARD_H
