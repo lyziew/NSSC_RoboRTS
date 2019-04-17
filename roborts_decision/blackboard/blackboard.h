@@ -165,40 +165,40 @@ public:
   // 反馈比赛状态数据
   void GameStatusCallback(const roborts_msgs::GameStatusConstPtr &game_status_msg)
   {
-    game_status_ = game_status_msg -> game_status;
-    remaining_time_ = game_status_msg -> remaining_time;
+    game_status_ = static_cast<GameStatus>(game_status_msg -> game_status);
+    remaining_time_ = static_cast<unsigned int>(game_status_msg -> remaining_time);
   }
 
   // 反馈场上双方存活机器人状态数据
   void GameSurvivorCallback(const roborts_msgs::GameSurvivorConstPtr &game_survivor_msg)
   {
-    red3_ = game_survivor_msg -> red3;
-    red4_ = game_survivor_msg -> red4;
-    blue3_ = game_survivor_msg -> blue3;
-    blue4_ = game_survivor_msg -> blue4;
-    robot_survivor_[0] = red3
-    robot_survivor_[1] = red4
-    robot_survivor_[2] = blue3
-    robot_survivor_[3] = blue4
+    red3_ = (bool)(game_survivor_msg -> red3);
+    red4_ = (bool)(game_survivor_msg -> red4);
+    blue3_ = (bool)(game_survivor_msg -> blue3);
+    blue4_ = (bool)(game_survivor_msg -> blue4);
+    robot_survivor_[0] = red3_;
+    robot_survivor_[1] = red4_;
+    robot_survivor_[2] = blue3_;
+    robot_survivor_[3] = blue4_;
   }
 
   // 反馈buff区状态数据, 获取buff前应该先判断buff状态
   void BonusStatusCallback(const roborts_msgs::BonusStatusConstPtr &bonus_status_msg)
   {
-    red_bonus_ = bonus_status_msg -> red_bonus;
-    blue_bonus_ = bonus_status_msg -> blue_bonus;
+    red_bonus_ = static_cast<BonusStatus>(bonus_status_msg -> red_bonus);
+    blue_bonus_ = static_cast<BonusStatus>(bonus_status_msg -> blue_bonus);
   }
 
   // 反馈补给站状态, 补给前应该先判断补给站状态
   void SupplierStatusCallback(const roborts_msgs::SupplierStatusConstPtr &supplier_status_msg)
   {
-    supplier_status_ = supplier_status_msg -> status;
+    supplier_status_ = static_cast<SupplierStatus>(supplier_status_msg -> status);
   }
 
   // 反馈机器人状态
   void RobotStatusCallback(const roborts_msgs::RobotStatusConstPtr &robot_status_msg)
   {
-    robot_id_ = robot_status_msg -> id;
+    robot_id_ = static_cast<unsigned char>(robot_status_msg -> id);
 
     switch (robot_id_)
     {
@@ -217,29 +217,29 @@ public:
         robot_color_ = 'b';
         break;
     }
-    remain_hp_ = robot_status_msg -> remain_hp;
-    max_hp_ = robot_status_msg -> max_hp;
-    heat_cooling_limit_ = robot_status_msg -> heat_cooling_limit;
-    heat_cooling_rate_ = robot_status_msg -> heat_cooling_rate;
+    remain_hp_ = static_cast<unsigned int>(robot_status_msg -> remain_hp);
+    max_hp_ = static_cast<unsigned int>(robot_status_msg -> max_hp);
+    heat_cooling_limit_ = static_cast<unsigned int>(robot_status_msg -> heat_cooling_limit);
+    heat_cooling_rate_ = static_cast<unsigned int>(robot_status_msg -> heat_cooling_rate);
   }
 
   //反馈射击热量信息
   void RobotHeatCallback(const roborts_msgs::RobotHeatConstPtr &robot_heat_msg)
   {
-    shooter_heat_ = robot_heat_msg -> shooter_heat;
+    shooter_heat_ = static_cast<unsigned int>(robot_heat_msg -> shooter_heat);
   }
 
   // 反馈获取buff信息
   void RobotBonusCallback(const roborts_msgs::RobotBonusConstPtr &robot_bonus_msg)
   {
-    robot_bonus_ = robot_bonus_msg -> bonus;
+    robot_bonus_ = static_cast<bool>(robot_bonus_msg -> bonus);
     //bonus_aviliable_ = false;
   }
 
   // 反馈机器人遭受伤害信息
   void RobotDamageCallback(const roborts_msgs::RobotDamageConstPtr &robot_damage_msg)
   {
-    robot_damage_type_ = robot_damage_msg -> damage_type;
+    robot_damage_type_ = static_cast<DamageType>(robot_damage_msg -> damage_type);
 
     switch (robot_damage_msg -> damage_source)
     {
@@ -264,8 +264,8 @@ public:
   //  反馈机器人射击信息
   void RobotShootCallback(const roborts_msgs::RobotShootConstPtr &robot_shoot_msg)
   {
-    shoot_frequency_ = robot_shoot_msg -> frequency;
-    shoot_speed_ = robot_shoot_msg -> speed;
+    shoot_frequency_ = static_cast<unsigned char>(robot_shoot_msg -> frequency);
+    shoot_speed_ = static_cast<double>(robot_shoot_msg -> speed);
   }
 
   // Enemy
@@ -329,16 +329,17 @@ public:
   
     GameStatus GetGameStatus() const
   {
-    LOG_INFO<<__FUNCTION__<<": "<<(int)game_status_;
+    ROS_INFO("%s: %d", __FUNCTION__, (int)game_status_);
     return game_status_;
   }
 
-  bool* getRobotSurvivor() const
+  bool* getRobotSurvivor()
   {
     return robot_survivor_;
   }
   
-  BonusStatus GetSelfBonusStatus() const
+  // SetSelfBonusStatus修改了变量，不能设置为const
+  void SetSelfBonusStatus(unsigned char robot_color_) //const
   {
     if (robot_color_ == 'r')
     {
@@ -348,10 +349,14 @@ public:
     {
       self_bonus_status_ = blue_bonus_;
     }
+  }
+
+  BonusStatus GetSelfBonusStatus() const
+  {
     return self_bonus_status_;
   }
 
-  BonusStatus GetEnemyBonusStatus() const
+  BonusStatus SetEnemyBonusStatus(unsigned char robot_color_)
   {
     if (robot_color_ == 'r')
     {
@@ -361,21 +366,25 @@ public:
     {
       enemy_bonus_status_ = red_bonus_;
     }
-    return enemy_bonus_status_
+  }
+
+  BonusStatus GetEnemyBonusStatus() const
+  {
+    return enemy_bonus_status_;
   }
 
   SupplierStatus GetSupplierStatus() const
   {
-    LOG_INFO<<__FUNCTION__<<": "<<(int)supplier_status_;
+    ROS_INFO("%s: %d", __FUNCTION__, (int)supplier_status_);
     return supplier_status_;
   }
 
-  unsigned short GetHP() const
+  unsigned int GetHP() const
   {
     return remain_hp_;
   }
 
-  unsigned short GetRobotHeat() const
+  unsigned int GetRobotHeat() const
   {
     return shooter_heat_;
   }
@@ -549,7 +558,7 @@ private:
   bool red4_;
   bool blue3_;
   bool blue4_;
-  bool robot_survivor_[4];
+  bool robot_survivor_[4] = {0, 0, 0, 0};
   
   BonusStatus red_bonus_;
   BonusStatus blue_bonus_;
@@ -561,12 +570,12 @@ private:
   unsigned char robot_id_;
   unsigned char robot_color_;
   bool initial_has_bullet_;
-  unsigned short remain_hp_;
-  unsigned short max_hp_;
-  unsigned short heat_cooling_limit_;
-  unsigned short heat_cooling_rate_;
+  unsigned int remain_hp_;
+  unsigned int max_hp_;
+  unsigned int heat_cooling_limit_;
+  unsigned int heat_cooling_rate_;
 
-  unsigned short shooter_heat_;
+  unsigned int shooter_heat_;
 
   bool robot_bonus_;
   
