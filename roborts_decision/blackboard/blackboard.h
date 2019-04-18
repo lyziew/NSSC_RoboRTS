@@ -240,7 +240,6 @@ public:
   void RobotDamageCallback(const roborts_msgs::RobotDamageConstPtr &robot_damage_msg)
   {
     robot_damage_type_ = static_cast<DamageType>(robot_damage_msg -> damage_type);
-
     switch (robot_damage_msg -> damage_source)
     {
     case 0:
@@ -550,6 +549,7 @@ private:
   // BounsAviliable
   bool bouns_aviliable_;
   
+
   //! Referee system info
   GameStatus game_status_;
   unsigned int remaining_time_;

@@ -53,6 +53,7 @@
 #define ROBORTS_COSTMAP_STATIC_LAYER_H
 
 #include <nav_msgs/OccupancyGrid.h>
+#include <map_msgs/OccupancyGridUpdate.h>
 #include "io/io.h"
 #include "map_common.h"
 #include "costmap_layer.h"
@@ -75,7 +76,7 @@ class StaticLayer : public CostmapLayer {
 
  private:
   void InComingMap(const nav_msgs::OccupancyGridConstPtr& new_map);
-//  void IncomingUpdate(const map_msgs::OccupancyGridUpdateConstPtr& update);
+  void IncomingUpdate(const map_msgs::OccupancyGridUpdateConstPtr& update);
   unsigned char InterpretValue(unsigned char value);
   std::string global_frame_;
   std::string map_frame_;
