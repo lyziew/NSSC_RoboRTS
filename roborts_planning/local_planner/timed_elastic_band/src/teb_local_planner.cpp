@@ -175,6 +175,8 @@ roborts_common::ErrorInfo TebLocalPlanner::ComputeVelocityCommands(roborts_msgs:
   bool feasible = optimal_->IsTrajectoryFeasible(teb_error_info_, robot_cost_.get(), robot_footprint_,
                                                  robot_inscribed_radius_, robot_circumscribed_radius,
                                                  fesiable_step_look_ahead_);
+  ROS_INFO("Footprint %f, %f", robot_inscribed_radius_, robot_circumscribed_radius);
+     std::cout<<robot_inscribed_radius_<<" "<<robot_circumscribed_radius<<std::endl;
   if (!feasible) {
 //    cmd_vel.twist.linear.x = 0;
 //    cmd_vel.twist.linear.y = 0;

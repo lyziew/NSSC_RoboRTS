@@ -35,7 +35,7 @@ class GoalFactory
 public:
   typedef std::shared_ptr<GoalFactory> GoalFactoryPtr;
 
-  GoalFactory(const Blackboard::Ptr &blackboard_ptr, const std::string &proto_file_path) : blackboard_ptr_(blackboard_ptr)
+  GoalFactory(const Blackboard::Ptr &blackboard_ptr, const std::string &proto_file_path) : blackboard_ptr_(blackboard_ptr) ,patrol_count_(0)
 
   {
     LoadParam(proto_file_path);
@@ -159,11 +159,13 @@ public:
     roborts_decision::DecisionConfig decision_config;
     if (!roborts_common::ReadProtoFromTextFile(proto_file_path, &decision_config))
     {
+      ROS_ERROR("Failed to load config");
       return;
     }
 
     point_size_ = (unsigned int)(decision_config.point().size());
     patrol_goals_.resize(point_size_);
+    ROS_INFO("Get patrol goals size %d",point_size_);
     for (int i = 0; i != point_size_; i++)
     {
       patrol_goals_[i].header.frame_id = "map";
