@@ -388,31 +388,6 @@ public:
     return shooter_heat_;
   }
   
-  // Goal
-  void GoalCallback(const geometry_msgs::PoseStamped::ConstPtr &goal)
-  {
-    new_goal_ = true;
-    goal_ = *goal;
-  }
-
-  geometry_msgs::PoseStamped GetGoal() const
-  {
-    return goal_;
-  }
-
-  bool IsNewGoal()
-  {
-    if (new_goal_)
-    {
-      new_goal_ = false;
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-  
   /*---------------------------------- Tools ------------------------------------------*/
 
   double GetDistance(const geometry_msgs::PoseStamped &pose1,
