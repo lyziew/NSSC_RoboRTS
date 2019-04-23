@@ -115,9 +115,14 @@ public:
   typedef roborts_costmap::Costmap2D CostMap2D;
   explicit Blackboard(const std::string &proto_file_path) : game_status_(GameStatus::PRE_MATCH),
                                                             remain_hp_(2000),
+                                                            last_hp_(2000),
+                                                            dmp_(0),
+                                                            armor_attacked_(ArmorAttacked::NONE),
+                                                            robot_bonus_aviliable_(false),
                                                             enemy_detected_(false),
                                                             armor_detection_actionlib_client_("armor_detection_node_action", true)
   {
+    last_get_hp_time_ = ros::Time::now();
 
     tf_ptr_ = std::make_shared<tf::TransformListener>(ros::Duration(10));
 
@@ -155,9 +160,7 @@ public:
       robot_damage_sub_ = referee_nh_.subscribe<roborts_msgs::RobotDamage>("robot_damage", 30, &Blackboard::RobotDamageCallback, this);
       robot_shoot_sub_ = referee_nh_.subscribe<roborts_msgs::RobotShoot>("robot_shoot", 30, &Blackboard::RobotShootCallback, this);
     }
-
-    ros::NodeHandle nh;
-    robot_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/robot_pose", 2);
+                                                              
   }
 
   ~Blackboard() = default;
@@ -243,19 +246,19 @@ public:
     switch (robot_damage_msg -> damage_source)
     {
     case 0:
-      robot_damage_source_ = ArmorAttacked::FRONT;
+      armor_attacked_ = ArmorAttacked::FRONT;
       break;
     case 1:
-      robot_damage_source_ = ArmorAttacked::BACK;
+      armor_attacked_ = ArmorAttacked::BACK;
       break;
     case 2:
-      robot_damage_source_ = ArmorAttacked::LEFT;
+      armor_attacked_ = ArmorAttacked::LEFT;
       break;
     case 3:
-      robot_damage_source_ = ArmorAttacked::RIGHT;
+      armor_attacked_ = ArmorAttacked::RIGHT;
       break;
     default:
-      robot_damage_source_ = ArmorAttacked::NONE;
+      armor_attacked_ = ArmorAttacked::NONE;
       break;
     }
   }
@@ -388,29 +391,21 @@ public:
     return shooter_heat_;
   }
   
-  // Goal
-  void GoalCallback(const geometry_msgs::PoseStamped::ConstPtr &goal)
+  double HurtPerSecond()
   {
-    new_goal_ = true;
-    goal_ = *goal;
+    if ((ros::Time::now() - last_get_hp_time_) > ros::Duration(0.5)) {
+      auto hp_diff_ = last_hp_ - remain_hp_;
+      dmp_ = hp_diff_ / (ros::Time::now() - last_get_hp_time_).toSec();
+      last_get_hp_time_ = ros::Time::now();
+      last_hp_ = remain_hp_;
+      return dmp_;
+    } else {
+      return dmp_;
+    }
   }
 
-  geometry_msgs::PoseStamped GetGoal() const
-  {
-    return goal_;
-  }
-
-  bool IsNewGoal()
-  {
-    if (new_goal_)
-    {
-      new_goal_ = false;
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+  bool IsBonusAviliable() {
+    return robot_bonus_aviliable_;
   }
   
   /*---------------------------------- Tools ------------------------------------------*/
@@ -461,21 +456,26 @@ public:
   {
     if (ros::Time::now() - last_armor_attacked__time_ > ros::Duration(0.1))
     {
+      ROS_INFO("%s: %d", __FUNCTION__, (int)ArmorAttacked::NONE);
       return ArmorAttacked::NONE;
     }
     else
     {
+      ROS_INFO("%s: %d", __FUNCTION__, (int)armor_attacked_);
       return armor_attacked_;
     }
   }
+  
   RobotDetected GetRobotDetected() const
   {
     if (ros::Time::now() - last_robot_detected_time_ > ros::Duration(0.2))
     {
+      ROS_INFO("%s: %d", __FUNCTION__, (int)RobotDetected::NONE);
       return RobotDetected::NONE;
     }
     else
     {
+      ROS_INFO("%s: %d", __FUNCTION__, (int)robot_detected_);
       return robot_detected_;
     }
   }
@@ -546,10 +546,6 @@ private:
   RobotDetected robot_detected_;
   ros::Time last_robot_detected_time_;
 
-  // BounsAviliable
-  bool bouns_aviliable_;
-  
-
   //! Referee system info
   GameStatus game_status_;
   unsigned int remaining_time_;
@@ -574,13 +570,17 @@ private:
   unsigned int max_hp_;
   unsigned int heat_cooling_limit_;
   unsigned int heat_cooling_rate_;
+  double dmp_;
+  unsigned int last_hp_;
+  ros::Time last_get_hp_time_;
 
   unsigned int shooter_heat_;
 
-  bool robot_bonus_;
+  // BounsAviliable
+  bool robot_bonus_aviliable_;
   
   DamageType robot_damage_type_;
-  ArmorAttacked robot_damage_source_;
+  //ArmorAttacked robot_damage_source_;
 
   unsigned char shoot_frequency_;
   double shoot_speed_;
