@@ -235,8 +235,7 @@ public:
   // 反馈获取buff信息
   void RobotBonusCallback(const roborts_msgs::RobotBonusConstPtr &robot_bonus_msg)
   {
-    robot_bonus_ = static_cast<bool>(robot_bonus_msg -> bonus);
-    //bonus_aviliable_ = false;
+    robot_bonus_aviliable_ = static_cast<bool>(robot_bonus_msg -> bonus);
   }
 
   // 反馈机器人遭受伤害信息
