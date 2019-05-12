@@ -1,5 +1,5 @@
 
-#include "laser2map/laser2map.h"
+#include "initialization/initialization.h"
 
 #include <cstdio>
 #include <cmath>
@@ -18,17 +18,18 @@
 #include <pcl/registration/icp.h>
 #include <pcl/registration/sample_consensus_prerejective.h>
 #include <pcl/segmentation/sac_segmentation.h>
-
+#include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/Marker.h>
 
 
 
-laser2map::laser2map()
+initialization::initialization()
 {
 
-	laserSubscriber = nodeHandle.subscribe("scan", 1000, &laser2map::callbackLaser, this);
-	mapSubscriber = nodeHandle.subscribe("map", 1000, &laser2map::callbackMap, this);
-    posePublisher = nodeHandle.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose", 1);
+	laserSubscriber = nodeHandle.subscribe("scan", 10, &initialization::callbackLaser, this);
+	mapSubscriber = nodeHandle.subscribe("map", 10, &initialization::callbackMap, this);
+    uwbSubscriber = nodeHandle.subscribe("uwb", 10, &initialization::UwbCallback, this);
+    posePublisher = nodeHandle.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose", 2);
 
     we_have_map = false;
 
@@ -50,7 +51,7 @@ laser2map::laser2map()
 
 }
 
-void laser2map::callbackLaser(const sensor_msgs::LaserScan::ConstPtr& in)
+void initialization::callbackLaser(const sensor_msgs::LaserScan::ConstPtr& in)
 {
     
 	scan_in = *in;
@@ -117,7 +118,52 @@ void laser2map::callbackLaser(const sensor_msgs::LaserScan::ConstPtr& in)
 
 }
 
-void laser2map::callbackMap(nav_msgs::OccupancyGrid _map)
+void initialization::UwbCallback(const geometry_msgs::PoseStamped::ConstPtr &uwb_msg)
+{
+    ros::Time current_time = ros::Time::now();
+    tf::Stamped<tf::Pose> uwb_pose_in_uwb, uwb_pose_in_map;
+    tf::poseStampedMsgToTF(*uwb_msg, uwb_pose_in_uwb);
+    uwb_pose_in_uwb.stamp_ = ros::Time(0);
+    bool error = false;
+  try
+  {
+    tf_listener_ptr_.transformPose("map", uwb_pose_in_uwb, uwb_pose_in_map);
+  }
+  catch (tf::TransformException e)
+  {
+    error = true;
+    update_uwb_ = false;
+    ROS_ERROR ("Uwb Callback TF error: %s",e.what());
+  }
+  
+  if (uwb_init_)
+  {
+    Eigen::Vector3d uwb_pose_now;
+    uwb_pose_now << uwb_pose_in_map.getOrigin().x(),
+        uwb_pose_in_map.getOrigin().y(),
+        0;
+    //auto dt = (current_time - uwb_latest_time);
+    ros::Duration dt = (current_time - ros::Time::now());
+    if (dt.toSec() > 0)
+    {
+      ros::Time uwb_latest_time = current_time;
+      uwb_latest_pose_ = uwb_pose_now;
+      update_uwb_ = true;
+    }
+  }
+  else if (!error)
+  {
+    ROS_INFO("UWB Callback Init");
+    uwb_latest_pose_ << uwb_pose_in_map.getOrigin().x(),
+        uwb_pose_in_map.getOrigin().y(),
+        0;
+    uwb_latest_time = current_time;
+    uwb_init_ = true;
+  }
+}
+
+
+void initialization::callbackMap(nav_msgs::OccupancyGrid _map)
 {
     map = _map;
 	map_width = map.info.width;
@@ -170,7 +216,7 @@ void laser2map::callbackMap(nav_msgs::OccupancyGrid _map)
 
 //Calculate the match ratio between given points and map
 //within a match tolerance
-float laser2map::calculateMatch(vector<Point2>& source, float tolerance)
+float initialization::calculateMatch(vector<Point2>& source, float tolerance)
 {
 
     #ifdef CREATE_MATCH_CLOUD
@@ -232,7 +278,7 @@ float laser2map::calculateMatch(vector<Point2>& source, float tolerance)
 	return matched / float(source.size());
 }
 
-void laser2map::pub()
+void initialization::pub()
 {
 	
     #ifdef CREATE_LASER_CLOUD
@@ -250,7 +296,7 @@ void laser2map::pub()
 
 }
 
-void laser2map::artMatch()
+void initialization::artMatch()
 {
 
     float min_x=-5;
@@ -287,8 +333,8 @@ void laser2map::artMatch()
     tf::StampedTransform laser_to_base;
     try
     {
-        transformListener.waitForTransform("/base_laser_link", "/base_footprint", ros::Time(0), ros::Duration(10.0));
-        transformListener.lookupTransform("/base_laser_link", "/base_footprint", ros::Time(0), laser_to_base);
+        transformListener.waitForTransform("/base_laser_link", "/base_link", ros::Time(0), ros::Duration(10.0));
+        transformListener.lookupTransform("/base_laser_link", "/base_link", ros::Time(0), laser_to_base);
 
     }
     catch (tf::TransformException ex)
@@ -325,7 +371,7 @@ void laser2map::artMatch()
 //Calculate the match ratio
 //Return the list of possible poses whose match ratio is greater than threshold
 
-vector<match2> laser2map::basitAlignment(float threshold)
+vector<match2> initialization::basitAlignment(float threshold)
 {
     float min_x = 0 + map.info.origin.position.x;
     float min_y = 0 + map.info.origin.position.y;
@@ -398,8 +444,8 @@ vector<match2> laser2map::basitAlignment(float threshold)
     tf::StampedTransform laser_to_base;
     try
     {
-        transformListener.waitForTransform("/base_laser_link", "/base_footprint", ros::Time(0), ros::Duration(10.0));
-        transformListener.lookupTransform("/base_laser_link", "/base_footprint", ros::Time(0), laser_to_base);
+        transformListener.waitForTransform("/base_laser_link", "/base_link", ros::Time(0), ros::Duration(10.0));
+        transformListener.lookupTransform("/base_laser_link", "/base_link", ros::Time(0), laser_to_base);
 
     }
     catch (tf::TransformException ex)
@@ -437,13 +483,14 @@ vector<match2> laser2map::basitAlignment(float threshold)
 
 
 
-void laser2map::publishPose(float x, float y, float yaw)
+
+void initialization::publishPose(float x, float y, float yaw)
 {
     tf::StampedTransform laser_to_base;
     try
     {
-        transformListener.waitForTransform("/base_laser_link", "/base_footprint", ros::Time(0), ros::Duration(10.0));
-        transformListener.lookupTransform("/base_laser_link", "/base_footprint", ros::Time(0), laser_to_base);
+        transformListener.waitForTransform("/base_laser_link", "/base_link", ros::Time(0), ros::Duration(10.0));
+        transformListener.lookupTransform("/base_laser_link", "/base_link", ros::Time(0), laser_to_base);
 
     }
     catch (tf::TransformException ex)
@@ -474,7 +521,7 @@ void laser2map::publishPose(float x, float y, float yaw)
     posePublisher.publish(pose);
 }
 
-void laser2map::applyICPTransform()
+void initialization::applyICPTransform()
 {
 
 #ifdef CREATE_LASER_CLOUD
@@ -546,7 +593,7 @@ void laser2map::applyICPTransform()
 #endif
 }
 
-vector<Point2> laser2map::artificialSensorData(float x, float y, float yaw)
+vector<Point2> initialization::artificialSensorData(float x, float y, float yaw)
 {
    
 
@@ -597,7 +644,7 @@ vector<Point2> laser2map::artificialSensorData(float x, float y, float yaw)
 
 }
 
-float laser2map::compareArtificialAndRealSensorData(float x, float y, float yaw)
+float initialization::compareArtificialAndRealSensorData(float x, float y, float yaw)
 {
     vector<char> real_data(map_data.size(), 0);
 
@@ -733,5 +780,24 @@ laserCloud.clear();
     */
 
     return matched/float(art.size());
+
+}
+
+bool initialization::compareUwbMatch(float x,float y)
+{
+    ROS_INFO("uwb pose: %f %f %f", uwb_latest_pose_[0], uwb_latest_pose_[1], uwb_latest_pose_[2]);
+    ROS_INFO("best pose: %f %f",x ,y);
+    //if((int)x+(int)uwb_latest_pose_[0]>=7)&&((int)x+(int)uwb_latest_pose_[0]<8)||((int)y+(int)uwb_latest_pose_[1]>=4)&&(int)y+(int)uwb_latest_pose_[1]<5))
+    
+    if(int(x)==int(uwb_latest_pose_[0]))
+    {
+         ROS_INFO("match uwb");
+        return true;
+    }
+    else
+    {  
+        ROS_INFO("do not match uwb");
+        return false;
+    }
 
 }

@@ -150,9 +150,9 @@ typedef struct {
 
 //设置云台模式
 #define CMD_SET_GIMBAL_MODE            (0X02u)
-typedef enum {
-  GYRO_CONTROL,
+typedef enum: uint8_t {
   CODE_CONTROL,
+  GYRO_CONTROL,
   G_MODE_MAX_NUM,
 } gimbal_mode_e;
 
@@ -180,8 +180,7 @@ typedef struct{
 
 //设置射击
 #define CMD_SET_SHOOT_INFO             (0x05u)
-//射击模式
-typedef enum {
+typedef enum: uint8_t {
   SHOOT_STOP = 0,
   SHOOT_ONCE,
   SHOOT_CONTINUOUS,

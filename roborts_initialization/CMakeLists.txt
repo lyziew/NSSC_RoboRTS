@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(laser2map)
+project(initialization)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -12,8 +12,10 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   pcl_conversions
   pcl_ros
-  visualization_msgs 
-
+  visualization_msgs
+  roborts_msgs
+  roborts_common
+  roborts_localization
 )
 
 find_package(Eigen3 REQUIRED)
@@ -21,43 +23,45 @@ include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
 
 find_package(PCL REQUIRED)
+find_package(Eigen3 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES laser2map
-  CATKIN_DEPENDS nav_msgs laser_geometry roscpp sensor_msgs tf pcl_conversions pcl_ros
+  LIBRARIES initialization
+  CATKIN_DEPENDS nav_msgs laser_geometry roscpp sensor_msgs tf pcl_conversions pcl_ros roborts_msgs roborts_common roborts_localization
 #  DEPENDS system_lib
 )
 
 
- include_directories(include)
+include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
- add_library(laser2map
-   src/laser2map.cpp
+ add_library(initialization
+   src/initialization.cpp
  )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(laser2map ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(initialization ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(laser2map_node src/laser2map_node.cpp)
+add_executable(initialization_node src/initialization_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(laser2map_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(initialization_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(laser2map_node
-   laser2map
+target_link_libraries(initialization_node
+   initialization
+   ${EIGEN3_LIBRARIES}
    ${catkin_LIBRARIES}
  )
 
@@ -76,7 +80,7 @@ target_link_libraries(laser2map_node
 # )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS laser2map laser2map_node
+install(TARGETS initialization initialization_node
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -101,7 +105,7 @@ install(TARGETS laser2map laser2map_node
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_laser2map.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_initialization.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

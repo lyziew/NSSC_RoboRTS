@@ -1,29 +1,18 @@
 #include "ros/ros.h"
-#include "laser2map/laser2map.h"
+#include "initialization/initialization.h"
 #include <cstdio>
 
 #include "geometry_msgs/Twist.h"
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "laser2map_node");
+	ros::init(argc, argv, "initialization_node");
 
 	ros::NodeHandle n;
 
-	ros::Publisher movePublisher = n.advertise<geometry_msgs::Twist>("mobile_base_controller/cmd_vel", 100);
-	geometry_msgs::Twist vel;
+	ros::Rate r(10);
 
-	vel.linear.x=0;
-	vel.linear.y=0;
-	vel.linear.z=0;
-
-	vel.angular.x=0;
-	vel.angular.y=0;
-	vel.angular.z=0;
-
-	ros::Rate r(2);
-
-	laser2map l;
+	initialization l;
 
 	ros::Time t = ros::Time::now();
 	ros::Duration s;
@@ -32,6 +21,7 @@ int main(int argc, char **argv)
 
 	float threshold = 0.9;
 
+	bool is_match;
 	while(ros::ok())
 	{
 		s=ros::Time::now()-t;
@@ -61,7 +51,13 @@ int main(int argc, char **argv)
 				if(matches.size() > 0)
 				{
 					if(matches.size() > 150) threshold += 0.04;
-
+					is_match = l.compareUwbMatch(matches[best].x,matches[best].y);
+					if(!is_match){
+						matches[best].x = 8-matches[best].x;
+						matches[best].y = 5-matches[best].y;
+						matches[best].yaw = matches[best].yaw - 3.14;
+					}
+					
 					l.publishPose(matches[best].x, matches[best].y, matches[best].yaw);
 					ROS_INFO("pose published: %f %f %f", matches[best].x, matches[best].y, matches[best].yaw);
 
@@ -86,7 +82,6 @@ int main(int argc, char **argv)
 		
 
 		l.pub();
-
 
 		r.sleep();
 

@@ -13,13 +13,15 @@
 #include "pcl/registration/icp.h"
 
 #include "ros/ros.h"
+#include <Eigen/Dense>
+
 
 #define CREATE_LASER_CLOUD
 //#define CREATE_MAP_CLOUD
 //#define CREATE_MATCH_CLOUD
 
-using namespace std;
 
+using namespace std;
 struct Point2
 {
     float x;
@@ -35,15 +37,20 @@ struct match2
     float score;
 };
 
-class laser2map
+class initialization
 {
 
     ros::NodeHandle nodeHandle;
 
     ros::Subscriber laserSubscriber;
     ros::Subscriber mapSubscriber;
+    //uwb
+    ros::Subscriber uwbSubscriber;
+
     ros::Publisher posePublisher;
     tf::TransformListener transformListener;
+    tf::TransformListener tf_listener_ptr_;
+
 
     ros::Publisher marker_pub; 
 
@@ -75,17 +82,27 @@ class laser2map
     sensor_msgs::LaserScan scan_in;
 
     bool we_have_map;
+  
+    //uwb
+    bool enable_uwb_ = true;
+    bool uwb_init_ = true;
+    bool update_uwb_ = true;
+    int uwb_thread_delay_ = 10;
+    std::string uwb_frame_;
+    std::string uwb_topic_name_;
+    ros::Time uwb_latest_time;
+    Eigen::Vector3d uwb_latest_pose_;
 
     vector<Point2> sensor_data, sensor_data_reduced;
 
 
 public:
 
-    laser2map();
+    initialization();
 
     void callbackLaser(const sensor_msgs::LaserScan::ConstPtr&);
     void callbackMap(nav_msgs::OccupancyGrid);
-
+    void UwbCallback(const geometry_msgs::PoseStamped::ConstPtr &uwb_msg);
     void pub();
     float calculateMatch(vector<Point2>& , float);
 
@@ -96,7 +113,7 @@ public:
 
     vector<Point2> artificialSensorData(float, float, float);
     float compareArtificialAndRealSensorData(float, float, float);
-
+    bool compareUwbMatch(float, float);
     void artMatch();
 
     void publishPose(float, float, float);

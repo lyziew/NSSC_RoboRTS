@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>laser2map</name>
+  <name>initialization</name>
   <version>0.0.0</version>
-  <description>The laser2map package</description>
+  <description>The initialization package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/laser2map</url> -->
+  <!-- <url type="website">http://wiki.ros.org/initialization</url> -->
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
@@ -48,7 +48,9 @@
   <build_depend>pcl_conversions</build_depend>
   <build_depend>pcl_ros</build_depend>
   <build_depend>visualization_msgs</build_depend>
-
+  <build_depend>roborts_common</build_depend>
+  <build_depend>roborts_msgs</build_depend>
+  <build_depend>roborts_localization</build_depend>
   <run_depend>nav_msgs</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
@@ -57,8 +59,9 @@
   <run_depend>pcl_conversions</run_depend>
   <run_depend>pcl_ros</run_depend>
   <run_depend>visualization_msgs</run_depend>
-
-
+  <run_depend>roborts_common</run_depend>
+  <run_depend>roborts_msgs</run_depend>
+  <run_depend>roborts_localization</run_depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
