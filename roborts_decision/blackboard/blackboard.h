@@ -49,8 +49,8 @@
 #include "roborts_msgs/RobotStatus.h"
 #include "roborts_msgs/SupplierStatus.h"
 #include "roborts_msgs/ArmorDetectionAction.h"
-
 #include "io/io.h"
+#include "../log.h"
 #include "../proto/decision.pb.h"
 #include "costmap/costmap_interface.h"
 
